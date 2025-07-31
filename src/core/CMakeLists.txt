@@ -68,6 +68,7 @@ set(COMMON_SOURCES
     api/logging_api.cpp
     api/mdns_api.cpp
     api/mesh_diag_api.cpp
+    api/mesh_monitor_api.cpp
     api/message_api.cpp
     api/multi_ail_detection_api.cpp
     api/multi_radio_api.cpp
@@ -248,6 +249,8 @@ set(COMMON_SOURCES
     thread/mesh_forwarder.cpp
     thread/mesh_forwarder_ftd.cpp
     thread/mesh_forwarder_mtd.cpp
+    thread/mesh_monitor.cpp
+    thread/mesh_monitor_types.cpp
     thread/message_framer.cpp
     thread/mle.cpp
     thread/mle_ftd.cpp

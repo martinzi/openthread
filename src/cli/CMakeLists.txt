@@ -41,6 +41,7 @@ set(COMMON_SOURCES
     cli_coap_secure.cpp
     cli_commissioner.cpp
     cli_dataset.cpp
+    cli_mesh_monitor.cpp
     cli_dns.cpp
     cli_history.cpp
     cli_joiner.cpp

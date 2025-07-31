@@ -71,6 +71,7 @@
 #include "cli/cli_mac_filter.hpp"
 #include "cli/cli_mdns.hpp"
 #include "cli/cli_mesh_diag.hpp"
+#include "cli/cli_mesh_monitor.hpp"
 #include "cli/cli_network_data.hpp"
 #include "cli/cli_ping.hpp"
 #include "cli/cli_srp_client.hpp"
@@ -485,6 +486,10 @@ private:
     MeshDiag mMeshDiag;
 #endif
 #endif // OPENTHREAD_FTD || OPENTHREAD_MTD
+
+#if OPENTHREAD_CONFIG_MESH_MONITOR_CLIENT_ENABLE && OPENTHREAD_FTD
+    MeshMonitorClient mMeshMonitorClient;
+#endif
 
 #if OPENTHREAD_CONFIG_TMF_ANYCAST_LOCATOR_ENABLE
     bool mLocateInProgress : 1;

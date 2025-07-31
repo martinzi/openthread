@@ -95,6 +95,10 @@ struct Entry
     _("d/dr", kUriDiagnosticReset, "DiagReset")                   \
     _("h/an", kUriHistoryAnswer, "HistAnswer")                    \
     _("h/qy", kUriHistoryQuery, "HistQuery")                      \
+    _("m/er", kUriMeshMonEndDeviceRequest, "MeshMonEndRequest")   \
+    _("m/eu", kUriMeshMonEndDeviceUpdate, "MeshMonEndUpdate")     \
+    _("m/sr", kUriMeshMonServerRequest, "MeshMonServerRequest")   \
+    _("m/su", kUriMeshMonServerUpdate, "MeshMonServerUpdate")     \
     _("n/dn", kUriDuaRegistrationNotify, "DuaRegNotify")          \
     _("n/dr", kUriDuaRegistrationRequest, "DuaRegRequest")        \
     _("n/mr", kUriMlr, "Mlr")

@@ -1,0 +1,124 @@
+/*
+ *  Copyright (c) 2026, The OpenThread Authors.
+ *  All rights reserved.
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions are met:
+ *  1. Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *  2. Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in the
+ *     documentation and/or other materials provided with the distribution.
+ *  3. Neither the name of the copyright holder nor the
+ *     names of its contributors may be used to endorse or promote products
+ *     derived from this software without specific prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ *  POSSIBILITY OF SUCH DAMAGE.
+ */
+
+#include "openthread-core-config.h"
+
+#include "instance/instance.hpp"
+
+using namespace ot;
+
+#if OPENTHREAD_CONFIG_MESH_MONITOR_CLIENT_ENABLE
+
+otError otMeshMonGetNextContext(const otMessage *aMessage, otMeshMonIterator *aIterator, otMeshMonContext *aContext)
+{
+    AssertPointerIsNotNull(aMessage);
+    AssertPointerIsNotNull(aIterator);
+    AssertPointerIsNotNull(aContext);
+
+    return MeshMonitor::Client::GetNextContext(AsCoapMessage(aMessage), *aIterator, *aContext);
+}
+
+otError otMeshMonGetNextTlv(const otMessage *aMessage, otMeshMonContext *aContext, otMeshMonTlv *aTlv)
+{
+    AssertPointerIsNotNull(aMessage);
+    AssertPointerIsNotNull(aContext);
+    AssertPointerIsNotNull(aTlv);
+
+    return MeshMonitor::Client::GetNextTlv(AsCoapMessage(aMessage), *aContext, *aTlv);
+}
+
+otError otMeshMonGetNextIp6Address(const otMessage          *aMessage,
+                                   otMeshMonIp6AddrIterator *aIterator,
+                                   otIp6Address             *aAddress)
+{
+    AssertPointerIsNotNull(aMessage);
+    AssertPointerIsNotNull(aIterator);
+    AssertPointerIsNotNull(aAddress);
+
+    return MeshMonitor::Client::GetNextIp6Address(AsCoapMessage(aMessage), *aIterator, AsCoreType(aAddress));
+}
+
+otError otMeshMonGetNextAloc(const otMessage *aMessage, otMeshMonAlocIterator *aIterator, uint16_t *aAloc)
+{
+    AssertPointerIsNotNull(aMessage);
+    AssertPointerIsNotNull(aIterator);
+    AssertPointerIsNotNull(aAloc);
+
+    return MeshMonitor::Client::GetNextAloc(AsCoapMessage(aMessage), *aIterator, *aAloc);
+}
+
+void otMeshMonStartClient(otInstance                    *aInstance,
+                          const ot::MeshMonitor::TlvSet *aHost,
+                          const ot::MeshMonitor::TlvSet *aChild,
+                          const ot::MeshMonitor::TlvSet *aNeighbor,
+                          otMeshMonServerUpdateCallback  aCallback,
+                          void                          *aContext)
+{
+    AsCoreType(aInstance).Get<MeshMonitor::Client>().Start(aHost, aChild, aNeighbor, aCallback, aContext);
+}
+
+void otMeshMonStopClient(otInstance *aInstance) { AsCoreType(aInstance).Get<MeshMonitor::Client>().Stop(); }
+
+bool otMeshMonTlvIsSet(const ot::MeshMonitor::TlvSet *aTlvSet, uint8_t aTlv)
+{
+    bool set = false;
+
+    VerifyOrExit(aTlvSet != nullptr);
+    VerifyOrExit(MeshMonitor::Tlv::IsKnownTlv(aTlv));
+
+    set = aTlvSet->IsSet(static_cast<MeshMonitor::Tlv::Type>(aTlv));
+
+exit:
+    return set;
+}
+
+otError otMeshMonSetTlv(ot::MeshMonitor::TlvSet *aTlvSet, uint8_t aTlv)
+{
+    Error error = kErrorNone;
+
+    VerifyOrExit(aTlvSet != nullptr, error = kErrorInvalidArgs);
+    VerifyOrExit(MeshMonitor::Tlv::IsKnownTlv(aTlv), error = kErrorInvalidArgs);
+
+    aTlvSet->Set(static_cast<MeshMonitor::Tlv::Type>(aTlv));
+
+exit:
+    return error;
+}
+
+void otMeshMonClearTlv(ot::MeshMonitor::TlvSet *aTlvSet, uint8_t aTlv)
+{
+    VerifyOrExit(aTlvSet != nullptr);
+    VerifyOrExit(MeshMonitor::Tlv::IsKnownTlv(aTlv));
+
+    aTlvSet->Clear(static_cast<MeshMonitor::Tlv::Type>(aTlv));
+
+exit:
+    return;
+}
+
+#endif // OPENTHREAD_CONFIG_MESH_MONITOR_CLIENT_ENABLE
