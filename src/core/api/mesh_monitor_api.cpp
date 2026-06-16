@@ -124,4 +124,50 @@ exit:
     return;
 }
 
+void otMeshMonClearTlvSet(otMeshMonTlvSet *aTlvSet)
+{
+    VerifyOrExit(aTlvSet != nullptr);
+
+    AsCoreType(aTlvSet).Clear();
+
+exit:
+    return;
+}
+
+bool otMeshMonTlvSetIsEmpty(const otMeshMonTlvSet *aTlvSet)
+{
+    bool isEmpty = true;
+
+    VerifyOrExit(aTlvSet != nullptr);
+
+    isEmpty = AsCoreType(aTlvSet).IsEmpty();
+
+exit:
+    return isEmpty;
+}
+
+void otMeshMonTlvSetUnion(otMeshMonTlvSet *aDst, const otMeshMonTlvSet *aSrc)
+{
+    VerifyOrExit(aDst != nullptr);
+    VerifyOrExit(aSrc != nullptr);
+
+    AsCoreType(aDst).SetAll(AsCoreType(aSrc));
+
+exit:
+    return;
+}
+
+bool otMeshMonTlvSetsAreEqual(const otMeshMonTlvSet *aFirst, const otMeshMonTlvSet *aSecond)
+{
+    bool areEqual = (aFirst == aSecond);
+
+    VerifyOrExit(!areEqual);
+    VerifyOrExit((aFirst != nullptr) && (aSecond != nullptr));
+
+    areEqual = (AsCoreType(aFirst) == AsCoreType(aSecond));
+
+exit:
+    return areEqual;
+}
+
 #endif // OPENTHREAD_CONFIG_MESH_MONITOR_CLIENT_ENABLE

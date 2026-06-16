@@ -390,6 +390,45 @@ otError otMeshMonSetTlv(otMeshMonTlvSet *aTlvSet, uint8_t aTlv);
 void otMeshMonClearTlv(otMeshMonTlvSet *aTlvSet, uint8_t aTlv);
 
 /**
+ * Clears all TLVs from a Mesh Monitor TLV set.
+ *
+ * @param[in,out] aTlvSet  A pointer to the Mesh Monitor TLV set to clear.
+ *                         If NULL, the function returns without performing any operation.
+ */
+void otMeshMonClearTlvSet(otMeshMonTlvSet *aTlvSet);
+
+/**
+ * Checks whether a Mesh Monitor TLV set has no TLVs set.
+ *
+ * @param[in] aTlvSet  A pointer to the Mesh Monitor TLV set to query.
+ *
+ * @retval true   The set is empty, or @p aTlvSet is NULL.
+ * @retval false  The set contains at least one TLV.
+ */
+bool otMeshMonTlvSetIsEmpty(const otMeshMonTlvSet *aTlvSet);
+
+/**
+ * Adds all TLVs from a source set into a destination set (set union, @p aDst |= @p aSrc).
+ *
+ * @param[in,out] aDst  A pointer to the destination Mesh Monitor TLV set to modify.
+ *                      If NULL, the function returns without performing any operation.
+ * @param[in]     aSrc  A pointer to the source Mesh Monitor TLV set to add.
+ *                      If NULL, the function returns without performing any operation.
+ */
+void otMeshMonTlvSetUnion(otMeshMonTlvSet *aDst, const otMeshMonTlvSet *aSrc);
+
+/**
+ * Checks whether two Mesh Monitor TLV sets contain the same TLVs.
+ *
+ * @param[in] aFirst   A pointer to the first Mesh Monitor TLV set.
+ * @param[in] aSecond  A pointer to the second Mesh Monitor TLV set.
+ *
+ * @retval true   Both sets contain the same TLVs, or both pointers are NULL.
+ * @retval false  The sets differ, or exactly one pointer is NULL.
+ */
+bool otMeshMonTlvSetsAreEqual(const otMeshMonTlvSet *aFirst, const otMeshMonTlvSet *aSecond);
+
+/**
  * @}
  */
 
