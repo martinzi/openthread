@@ -320,9 +320,7 @@ private:
  * Includes message error rate and frame error rate.
  */
 OT_TOOL_PACKED_BEGIN
-class MacLinkErrorRatesTxTlv : public Tlv,
-                               public TlvInfo<Tlv::kMacLinkErrorRatesTx>,
-                                public MacLinkErrorRatesTlvValue
+class MacLinkErrorRatesTxTlv : public Tlv, public TlvInfo<Tlv::kMacLinkErrorRatesTx>, public MacLinkErrorRatesTlvValue
 {
 public:
     /**

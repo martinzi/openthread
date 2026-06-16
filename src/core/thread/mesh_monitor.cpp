@@ -2463,10 +2463,10 @@ exit:
 #if OPENTHREAD_CONFIG_MESH_MONITOR_CLIENT_ENABLE
 Client::Client(Instance &aInstance)
     : InstanceLocator(aInstance)
-    , mTimer{aInstance}
     , mActive(false)
     , mQueryPending(false)
     , mUseUnicastDestination(false)
+    , mTimer{aInstance}
 {
 }
 
@@ -2517,9 +2517,9 @@ void Client::Start(const TlvSet                 *aHost,
 
     if ((mUseUnicastDestination ? SendServerRequest(true, mDestination, false)
 #if OPENTHREAD_FTD
-                                 : SendServerRequestToAllRouters(true)
+                                : SendServerRequestToAllRouters(true)
 #else
-                                 : SendServerRequest(true)
+                                : SendServerRequest(true)
 #endif
              ) == kErrorNone)
     {
@@ -2724,7 +2724,8 @@ Error Client::GetNextTlv(const Coap::Message &aMessage, otMeshMonContext &aConte
         {
             aTlv.mData.mIp6LinkLocalAddressList.mOffset = value.GetOffset();
             aTlv.mData.mIp6LinkLocalAddressList.mLength = value.GetLength();
-            VerifyOrExit((aTlv.mData.mIp6LinkLocalAddressList.mLength % sizeof(Ip6::Address)) == 0, error = kErrorParse);
+            VerifyOrExit((aTlv.mData.mIp6LinkLocalAddressList.mLength % sizeof(Ip6::Address)) == 0,
+                         error = kErrorParse);
             ExitNow();
         }
 
@@ -3116,9 +3117,9 @@ void Client::HandleRegistrationTimer(void)
 
     if ((mUseUnicastDestination ? SendServerRequest(mQueryPending, mDestination, false)
 #if OPENTHREAD_FTD
-                                 : SendServerRequestToAllRouters(mQueryPending)
+                                : SendServerRequestToAllRouters(mQueryPending)
 #else
-                                 : SendServerRequest(mQueryPending)
+                                : SendServerRequest(mQueryPending)
 #endif
              ) == kErrorNone)
     {

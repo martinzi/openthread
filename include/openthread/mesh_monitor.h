@@ -75,14 +75,14 @@ typedef enum otMeshMonUpdateMode
     OT_MESH_MON_UPDATE_MODE_REMOVED = 2, ///< Removed
 } otMeshMonUpdateMode;
 
-#define OT_MESH_MON_TLV_EXT_ADDRESS 0U     ///< Extended Address TLV
-#define OT_MESH_MON_TLV_MODE 1U            ///< Mode TLV
-#define OT_MESH_MON_TLV_TIMEOUT 2U         ///< Timeout TLV
-#define OT_MESH_MON_TLV_LAST_HEARD 3U      ///< Last Heard TLV
-#define OT_MESH_MON_TLV_CONNECTION_TIME 4U ///< Connection Time TLV
-#define OT_MESH_MON_TLV_CSL 5U             ///< CSL TLV
-#define OT_MESH_MON_TLV_ROUTE64 6U         ///< Route64 TLV
-#define OT_MESH_MON_TLV_LINK_MARGIN_IN 7U  ///< Link Margin In TLV
+#define OT_MESH_MON_TLV_EXT_ADDRESS 0U                  ///< Extended Address TLV
+#define OT_MESH_MON_TLV_MODE 1U                         ///< Mode TLV
+#define OT_MESH_MON_TLV_TIMEOUT 2U                      ///< Timeout TLV
+#define OT_MESH_MON_TLV_LAST_HEARD 3U                   ///< Last Heard TLV
+#define OT_MESH_MON_TLV_CONNECTION_TIME 4U              ///< Connection Time TLV
+#define OT_MESH_MON_TLV_CSL 5U                          ///< CSL TLV
+#define OT_MESH_MON_TLV_ROUTE64 6U                      ///< Route64 TLV
+#define OT_MESH_MON_TLV_LINK_MARGIN_IN 7U               ///< Link Margin In TLV
 #define OT_MESH_MON_TLV_MAC_LINK_ERROR_RATES_TX 8U      ///< Mac Link Error Rates Tx TLV
 #define OT_MESH_MON_TLV_MLEID 9U                        ///< ML-EID TLV
 #define OT_MESH_MON_TLV_IP6_ADDRESS_LIST 10U            ///< Ip6 Address List TLV
@@ -122,12 +122,12 @@ typedef uint16_t otMeshMonIterator; ///< Used to iterate through Device Contexts
  */
 typedef struct otMeshMonContext
 {
-    uint16_t mRloc16; ///< The Rloc16 of the device.
-    uint8_t mType;       ///< The Type of the device (otMeshMonDeviceType).
-    uint8_t mUpdateMode; ///< The update mode of the context (otMeshMonUpdateMode). Only valid if child or neighbor.
-    bool    mLegacy;     ///< The legacy flag of the context. Only valid if `mType` is child.
-    uint16_t mData;  ///< Reserved for internal use. DO NOT MODIFY.
-    uint16_t mData2; ///< Reserved for internal use. DO NOT MODIFY.
+    uint16_t mRloc16;     ///< The Rloc16 of the device.
+    uint8_t  mType;       ///< The Type of the device (otMeshMonDeviceType).
+    uint8_t  mUpdateMode; ///< The update mode of the context (otMeshMonUpdateMode). Only valid if child or neighbor.
+    bool     mLegacy;     ///< The legacy flag of the context. Only valid if `mType` is child.
+    uint16_t mData;       ///< Reserved for internal use. DO NOT MODIFY.
+    uint16_t mData2;      ///< Reserved for internal use. DO NOT MODIFY.
 } otMeshMonContext;
 
 /**
@@ -203,24 +203,24 @@ typedef struct otMeshMonTlv
 
     union
     {
-        otExtAddress     mExtAddress;
-        otLinkModeConfig mMode;
-        uint32_t         mTimeout;
-        uint32_t         mLastHeard;
-        uint32_t         mConnectionTime;
-        otMeshMonCsl     mCsl;
-        otNetworkDiagRoute mRoute;
-        otIp6InterfaceIdentifier mMlEid;
-        otMeshMonIp6AddrIterator mIp6AddressList;
-        otMeshMonAlocIterator    mAlocList;
-        uint16_t                 mThreadSpecVersion;
-        char                     mThreadStackVersion[OT_NETWORK_DIAGNOSTIC_MAX_THREAD_STACK_VERSION_TLV_LENGTH + 1];
-        char                     mVendorName[OT_NETWORK_DIAGNOSTIC_MAX_VENDOR_NAME_TLV_LENGTH + 1];
-        char                     mVendorModel[OT_NETWORK_DIAGNOSTIC_MAX_VENDOR_MODEL_TLV_LENGTH + 1];
-        char                     mVendorSwVersion[OT_NETWORK_DIAGNOSTIC_MAX_VENDOR_SW_VERSION_TLV_LENGTH + 1];
-        char                     mVendorAppUrl[OT_NETWORK_DIAGNOSTIC_MAX_VENDOR_APP_URL_TLV_LENGTH + 1];
-        otMeshMonIp6AddrIterator mIp6LinkLocalAddressList;
-        otExtAddress             mEui64;
+        otExtAddress               mExtAddress;
+        otLinkModeConfig           mMode;
+        uint32_t                   mTimeout;
+        uint32_t                   mLastHeard;
+        uint32_t                   mConnectionTime;
+        otMeshMonCsl               mCsl;
+        otNetworkDiagRoute         mRoute;
+        otIp6InterfaceIdentifier   mMlEid;
+        otMeshMonIp6AddrIterator   mIp6AddressList;
+        otMeshMonAlocIterator      mAlocList;
+        uint16_t                   mThreadSpecVersion;
+        char                       mThreadStackVersion[OT_NETWORK_DIAGNOSTIC_MAX_THREAD_STACK_VERSION_TLV_LENGTH + 1];
+        char                       mVendorName[OT_NETWORK_DIAGNOSTIC_MAX_VENDOR_NAME_TLV_LENGTH + 1];
+        char                       mVendorModel[OT_NETWORK_DIAGNOSTIC_MAX_VENDOR_MODEL_TLV_LENGTH + 1];
+        char                       mVendorSwVersion[OT_NETWORK_DIAGNOSTIC_MAX_VENDOR_SW_VERSION_TLV_LENGTH + 1];
+        char                       mVendorAppUrl[OT_NETWORK_DIAGNOSTIC_MAX_VENDOR_APP_URL_TLV_LENGTH + 1];
+        otMeshMonIp6AddrIterator   mIp6LinkLocalAddressList;
+        otExtAddress               mEui64;
         otMeshMonLinkMargin        mLinkMarginIn;
         otMeshMonMacLinkErrorRates mMacLinkErrorRatesTx;
         otNetworkDiagMacCounters   mMacCounters;
