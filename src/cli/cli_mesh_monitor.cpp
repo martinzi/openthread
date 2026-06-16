@@ -39,6 +39,7 @@ namespace Cli {
 
 MeshMonitorClient::MeshMonitorClient(otInstance *aInstance, OutputImplementer &aOutputImplementer)
     : Utils(aInstance, aOutputImplementer)
+    , mHasDestination(false)
 {
 }
 
@@ -67,6 +68,21 @@ otError MeshMonitorClient::Process(Arg aArgs[])
             set = &mNeighborTlvs;
         }
 
+        if (aArgs[1] == "-d")
+        {
+            VerifyOrExit(!aArgs[2].IsEmpty(), error = OT_ERROR_INVALID_ARGS);
+
+            if (aArgs[2] == "all")
+            {
+                mHasDestination = false;
+                ExitNow();
+            }
+
+            SuccessOrExit(error = aArgs[2].ParseAsIp6Address(mDestination));
+            mHasDestination = true;
+            ExitNow();
+        }
+
         VerifyOrExit(set != nullptr, error = OT_ERROR_INVALID_ARGS);
         set->Clear();
 
@@ -80,7 +96,8 @@ otError MeshMonitorClient::Process(Arg aArgs[])
     }
     else if (aArgs[0] == "start")
     {
-        otMeshMonStartClient(GetInstancePtr(), &mHostTlvs, &mChildTlvs, &mNeighborTlvs, HandleServerUpdate, this);
+        otMeshMonStartClient(GetInstancePtr(), &mHostTlvs, &mChildTlvs, &mNeighborTlvs,
+                                      mHasDestination ? &mDestination : nullptr, HandleServerUpdate, this);
     }
 
 exit:

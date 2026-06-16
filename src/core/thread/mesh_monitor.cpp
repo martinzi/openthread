@@ -2464,12 +2464,16 @@ exit:
 Client::Client(Instance &aInstance)
     : InstanceLocator(aInstance)
     , mTimer{aInstance}
+    , mActive(false)
+    , mQueryPending(false)
+    , mUseUnicastDestination(false)
 {
 }
 
 void Client::Start(const TlvSet                 *aHost,
                    const TlvSet                 *aChild,
                    const TlvSet                 *aNeighbor,
+                   const Ip6::Address           *aDestination,
                    otMeshMonServerUpdateCallback aCallback,
                    void                         *aContext)
 {
@@ -2501,17 +2505,26 @@ void Client::Start(const TlvSet                 *aHost,
 
     mQueryPending = true;
 
+    if (aDestination != nullptr)
+    {
+        mUseUnicastDestination = true;
+        mDestination           = *aDestination;
+    }
+    else
+    {
+        mUseUnicastDestination = false;
+    }
+
+    if ((mUseUnicastDestination ? SendServerRequest(true, mDestination, false)
 #if OPENTHREAD_FTD
-    if (SendServerRequestToAllRouters(true) == kErrorNone)
-    {
-        ScheduleNextRegistration();
-    }
+                                 : SendServerRequestToAllRouters(true)
 #else
-    if (SendServerRequest(true) == kErrorNone)
+                                 : SendServerRequest(true)
+#endif
+             ) == kErrorNone)
     {
         ScheduleNextRegistration();
     }
-#endif
     else
     {
         ScheduleRegistrationRetry();
@@ -2858,6 +2871,18 @@ exit:
     return error;
 }
 
+Error Client::PrepareServerRequest(bool aQuery, bool aIncludeNeighbors, Coap::Message *&aMessage)
+{
+    Error error = kErrorNone;
+
+    aMessage = Get<Tmf::Agent>().AllocateAndInitNonConfirmablePostMessage(kUriMeshMonServerRequest);
+    VerifyOrExit(aMessage != nullptr, error = kErrorNoBufs);
+    SuccessOrExit(error = AppendServerRequestPayload(*aMessage, aQuery, aIncludeNeighbors));
+
+exit:
+    return error;
+}
+
 Error Client::SendServerRequest(bool aQuery)
 {
     Error          error   = kErrorNone;
@@ -2865,10 +2890,7 @@ Error Client::SendServerRequest(bool aQuery)
 
     LogCrit("Client::SendServerRequest(aQuery=%s) called", aQuery ? "true" : "false");
 
-    message = Get<Tmf::Agent>().AllocateAndInitNonConfirmablePostMessage(kUriMeshMonServerRequest);
-    VerifyOrExit(message != nullptr, error = kErrorNoBufs);
-
-    SuccessOrExit(error = AppendServerRequestPayload(*message, aQuery, true));
+    SuccessOrExit(error = PrepareServerRequest(aQuery, true, message));
     SuccessOrExit(error = Get<Tmf::Agent>().SendMessageAllowMulticastLoop(
                       *message, Ip6::Address::GetRealmLocalAllRoutersMulticast()));
     LogCrit("Client::SendServerRequest sent successfully");
@@ -2882,15 +2904,25 @@ exit:
     return error;
 }
 
+Error Client::SendServerRequest(bool aQuery, const Ip6::Address &aDestination, bool aRecovery)
+{
+    Error          error   = kErrorNone;
+    Coap::Message *message = nullptr;
+
+    SuccessOrExit(error = PrepareServerRequest(aQuery, !aRecovery, message));
+    SuccessOrExit(error = Get<Tmf::Agent>().SendMessageTo(*message, aDestination));
+
+exit:
+    FreeMessageOnError(message, error);
+    return error;
+}
+
 Error Client::SendServerRequest(bool aQuery, uint16_t aRloc16, bool aRecovery)
 {
     Error          error   = kErrorNone;
     Coap::Message *message = nullptr;
 
-    message = Get<Tmf::Agent>().AllocateAndInitNonConfirmablePostMessage(kUriMeshMonServerRequest);
-    VerifyOrExit(message != nullptr, error = kErrorNoBufs);
-
-    SuccessOrExit(error = AppendServerRequestPayload(*message, aQuery, !aRecovery));
+    SuccessOrExit(error = PrepareServerRequest(aQuery, !aRecovery, message));
     SuccessOrExit(error = Get<Tmf::Agent>().SendMessageToRloc(*message, aRloc16));
 
 exit:
@@ -3043,7 +3075,9 @@ void Client::ProcessServerUpdate(Coap::Message &aMessage, const Ip6::MessageInfo
         if (sequenceError)
         {
             LogCrit("Sequence error occurred!");
-            IgnoreError(SendServerRequest(true, Mle::Rloc16FromRouterId(header.GetRouterId()), true));
+            IgnoreError(mUseUnicastDestination
+                            ? SendServerRequest(true, mDestination, true)
+                            : SendServerRequest(true, Mle::Rloc16FromRouterId(header.GetRouterId()), true));
             ExitNow();
         }
 
@@ -3080,17 +3114,16 @@ void Client::HandleRegistrationTimer(void)
 {
     VerifyOrExit(mActive);
 
+    if ((mUseUnicastDestination ? SendServerRequest(mQueryPending, mDestination, false)
 #if OPENTHREAD_FTD
-    if (SendServerRequestToAllRouters(mQueryPending) == kErrorNone)
-    {
-        ScheduleNextRegistration();
-    }
+                                 : SendServerRequestToAllRouters(mQueryPending)
 #else
-    if (SendServerRequest(mQueryPending) == kErrorNone)
+                                 : SendServerRequest(mQueryPending)
+#endif
+             ) == kErrorNone)
     {
         ScheduleNextRegistration();
     }
-#endif
     else
     {
         ScheduleRegistrationRetry();

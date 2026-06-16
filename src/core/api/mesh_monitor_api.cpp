@@ -76,10 +76,12 @@ void otMeshMonStartClient(otInstance                    *aInstance,
                           const ot::MeshMonitor::TlvSet *aHost,
                           const ot::MeshMonitor::TlvSet *aChild,
                           const ot::MeshMonitor::TlvSet *aNeighbor,
+                          const otIp6Address            *aDestination,
                           otMeshMonServerUpdateCallback  aCallback,
                           void                          *aContext)
 {
-    AsCoreType(aInstance).Get<MeshMonitor::Client>().Start(aHost, aChild, aNeighbor, aCallback, aContext);
+    AsCoreType(aInstance).Get<MeshMonitor::Client>().Start(aHost, aChild, aNeighbor, AsCoreTypePtr(aDestination),
+                                                           aCallback, aContext);
 }
 
 void otMeshMonStopClient(otInstance *aInstance) { AsCoreType(aInstance).Get<MeshMonitor::Client>().Stop(); }

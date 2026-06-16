@@ -1295,6 +1295,7 @@ public:
     void Start(const TlvSet                 *aHost,
                const TlvSet                 *aChild,
                const TlvSet                 *aNeighbor,
+               const Ip6::Address           *aDestination,
                otMeshMonServerUpdateCallback aCallback,
                void                         *aContext);
 
@@ -1332,66 +1333,51 @@ public:
 
 private:
     /**
-     * Sends a diagnostic server registration message to all routers.
+     * Allocates and populates a server request CoAP message.
      *
-     * This method constructs and sends a non-confirmable CoAP POST message to the realm-local
-     * all-routers multicast address (ff03::2) to register the client's diagnostic TLV subscriptions.
-     * The registration includes the requested TLV sets for host, child, and neighbor contexts.
+     * Extracted common setup shared by all SendServerRequest variants. The caller is
+     * responsible for sending the returned message and calling FreeMessageOnError on
+     * failure.
      *
-     * @param[in] aQuery  If true, requests routers to immediately send a complete diagnostic update (query).
-     *                    If false, requests routers to only send incremental updates going forward.
+     * @param[in]  aQuery             Request an immediate full update (query flag).
+     * @param[in]  aIncludeNeighbors  Include neighbor TLV contexts in the payload.
+     * @param[out] aMessage           On success, points to the allocated message.
      *
-     * @retval kErrorNone     Successfully sent the registration message.
-     * @retval kErrorNoBufs   Insufficient buffer space to allocate the message.
+     * @retval kErrorNone    Message allocated and payload written.
+     * @retval kErrorNoBufs  Insufficient CoAP buffer space.
+     */
+    Error PrepareServerRequest(bool aQuery, bool aIncludeNeighbors, Coap::Message *&aMessage);
+
+    /**
+     * Sends a server request to the realm-local all-routers multicast address.
      *
-     * @note Registration messages are sent periodically (every kRegistrationInterval) to maintain subscriptions.
-     * @note Routers will stop sending updates if no registration is received within kRegistrationInterval.
+     * @param[in] aQuery  If true, requests an immediate full diagnostic update.
      */
     Error SendServerRequest(bool aQuery);
 
     /**
-     * Sends unicast diagnostic server requests to all routers in the routing table.
+     * Sends a server request unicast to a specific IPv6 address.
      *
-     * This method iterates through all valid routers and sends individual unicast
-     * requests to each one using their RLOC16. For MTD builds this will fall back
-     * to the multicast `SendServerRequest(bool)` implementation.
+     * @param[in] aQuery      If true, requests an immediate full diagnostic update.
+     * @param[in] aDestination Target IPv6 address.
+     * @param[in] aRecovery   If true, excludes neighbor TLVs (sequence-error recovery path).
+     */
+    Error SendServerRequest(bool aQuery, const Ip6::Address &aDestination, bool aRecovery);
+
+    /**
+     * Sends unicast server requests to every valid router in the routing table.
+     * Falls back to multicast on MTD builds.
      *
-     * @param[in] aQuery  If true, requests routers to immediately send a complete diagnostic update.
-     *
-     * @retval kErrorNone     Successfully sent at least one request.
-     * @retval kErrorNotFound No valid routers found in the routing table.
+     * @param[in] aQuery  If true, requests an immediate full diagnostic update.
      */
     Error SendServerRequestToAllRouters(bool aQuery);
 
     /**
-     * Sends a diagnostic server request message to a specific router (unicast).
+     * Sends a server request unicast to a specific router by RLOC16.
      *
-     * This method constructs and sends a unicast non-confirmable CoAP POST message to a specific
-     * router identified by its routing locator (RLOC16). The message can be used for two purposes:
-     *
-     * 1. **Unicast Registration** (`aRecovery = false`):
-     *    - Registers TLV subscriptions with a specific router
-     *    - Includes all TLV sets (host, child, neighbor)
-     *    - Used for targeted registration to specific routers
-     *
-     * 2. **Sequence Error Recovery** (`aRecovery = true`):
-     *    - Requests a complete diagnostic refresh from a specific router
-     *    - Excludes neighbor TLVs to reduce message size (optimization for recovery)
-     *    - Used when the client detects a sequence number gap (missed SU messages)
-     *    - Always sets query flag to request complete update for resynchronization
-     *
-     * @param[in] aQuery     If true, requests the router to immediately send a complete diagnostic update.
-     *                       If false, requests the router to only send incremental updates going forward.
-     *                       Note: For recovery (`aRecovery = true`), this is forced to true internally.
-     * @param[in] aRloc16    The RLOC16 of the target router.
-     * @param[in] aRecovery  If true, this is a recovery query after detecting a sequence error.
-     *                       Recovery queries exclude neighbor TLVs and always request complete updates.
-     *
-     * @retval kErrorNone     Successfully sent the request message.
-     * @retval kErrorNoBufs   Insufficient buffer space to allocate the message.
-     *
-     * @note Recovery queries are triggered automatically by ProcessServerUpdate when sequence gaps are detected.
-     * @note Normal unicast registration includes all TLV sets, recovery only includes host and child TLVs.
+     * @param[in] aQuery    If true, requests an immediate full diagnostic update.
+     * @param[in] aRloc16   Target router RLOC16.
+     * @param[in] aRecovery If true, excludes neighbor TLVs (sequence-error recovery path).
      */
     Error SendServerRequest(bool aQuery, uint16_t aRloc16, bool aRecovery);
 
@@ -1504,10 +1490,13 @@ private:
 
     bool mActive : 1;
     bool mQueryPending : 1;
+    bool mUseUnicastDestination : 1;
 
     TlvSet mHostSet;
     TlvSet mChildSet;
     TlvSet mNeighborSet;
+
+    Ip6::Address mDestination;
 
     uint64_t mServerSeqNumbers[Mle::kMaxRouterId + 1]; ///< The last received sequence number from a server
 

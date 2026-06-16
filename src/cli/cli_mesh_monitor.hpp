@@ -60,6 +60,8 @@ private:
     MeshMonitor::TlvSet mHostTlvs;
     MeshMonitor::TlvSet mChildTlvs;
     MeshMonitor::TlvSet mNeighborTlvs;
+    bool                mHasDestination;
+    otIp6Address        mDestination;
 };
 
 } // namespace Cli

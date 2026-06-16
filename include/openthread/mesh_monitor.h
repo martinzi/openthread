@@ -317,26 +317,23 @@ otError otMeshMonGetNextAloc(const otMessage *aMessage, otMeshMonAlocIterator *a
 /**
  * Starts the Mesh Monitor client.
  *
- * This function initiates the mesh monitor client to collect diagnostic information
- * from the Thread network based on the specified TLV sets for host, child, and neighbor nodes.
+ * Collects diagnostic TLVs from the Thread network. When @p aDestination is NULL the
+ * client registers with all routers via multicast. When @p aDestination is non-NULL,
+ * registration and query requests are sent unicast to that specific IPv6 address only.
  *
- * @param[in] aInstance   A pointer to an OpenThread instance.
- * @param[in] aHost       A pointer to the TLV set for host diagnostic information to collect.
- *                        May be NULL if no host diagnostics are requested.
- * @param[in] aChild      A pointer to the TLV set for child diagnostic information to collect.
- *                        May be NULL if no child diagnostics are requested.
- * @param[in] aNeighbor   A pointer to the TLV set for neighbor diagnostic information to collect.
- *                        May be NULL if no neighbor diagnostics are requested.
- * @param[in] aCallback   A pointer to a callback function that is invoked when diagnostic
- *                        information is received from the server.
- * @param[in] aContext    A pointer to application-specific context information that will be
- *                        passed to the callback function.
- *
+ * @param[in] aInstance     A pointer to an OpenThread instance.
+ * @param[in] aHost         TLV set for host contexts. May be NULL.
+ * @param[in] aChild        TLV set for child contexts. May be NULL.
+ * @param[in] aNeighbor     TLV set for neighbor contexts. May be NULL.
+ * @param[in] aDestination  Optional unicast destination. NULL means all-routers multicast.
+ * @param[in] aCallback     Callback invoked when diagnostic information is received.
+ * @param[in] aContext      Application-specific context passed to the callback.
  */
 void otMeshMonStartClient(otInstance                    *aInstance,
                           const ot::MeshMonitor::TlvSet *aHost,
                           const ot::MeshMonitor::TlvSet *aChild,
                           const ot::MeshMonitor::TlvSet *aNeighbor,
+                          const otIp6Address            *aDestination,
                           otMeshMonServerUpdateCallback  aCallback,
                           void                          *aContext);
 
