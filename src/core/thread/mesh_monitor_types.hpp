@@ -34,6 +34,7 @@
 #include <openthread/platform/toolchain.h>
 
 #include "coap/coap_message.hpp"
+#include "common/as_core_type.hpp"
 #include "common/bit_set.hpp"
 #include "common/tlvs.hpp"
 
@@ -102,7 +103,7 @@ public:
  * If a TlvSet is provided by external code or its validity is in question
  * `FilterAllSupportedTlv` can be used to remove all invalid bits.
  */
-class TlvSet
+class TlvSet : public otMeshMonTlvSet
 {
 public:
     static constexpr uint16_t kNumBits  = OT_MESH_MON_DATA_TLV_MAX + 1;
@@ -192,7 +193,7 @@ public:
         }
 
         explicit Iterator(const TlvSet &aSet)
-            : mSet(&aSet.mBitSet)
+            : mSet(&aSet.AsBitSet())
             , mCurrent(0)
         {
             if (!mSet->Has(0))
@@ -223,10 +224,10 @@ public:
         uint8_t                 mCurrent;
     };
 
-    TlvSet(void) { mBitSet.Clear(); }
+    TlvSet(void) { ClearAllBytes(*this); }
 
-    bool operator==(const TlvSet &aOther) const { return mBitSet == aOther.mBitSet; }
-    bool operator!=(const TlvSet &aOther) const { return mBitSet != aOther.mBitSet; }
+    bool operator==(const TlvSet &aOther) const { return AsBitSet() == aOther.AsBitSet(); }
+    bool operator!=(const TlvSet &aOther) const { return AsBitSet() != aOther.AsBitSet(); }
 
     /**
      * Checks if a TLV is contained in the TlvSet.
@@ -236,7 +237,7 @@ public:
      * @retval true   If aType is contained in the TlvSet.
      * @retval false  If aType is not contained in the TlvSet.
      */
-    bool IsSet(Tlv::Type aType) const { return mBitSet.Has(aType); }
+    bool IsSet(Tlv::Type aType) const { return AsBitSet().Has(aType); }
 
     /**
      * Checks if no TLV is set.
@@ -244,7 +245,7 @@ public:
      * @retval true   If no TLV is contained in the TlvSet.
      * @retval false  If any TLV is contained in the TlvSet.
      */
-    bool IsEmpty(void) const { return mBitSet.IsEmpty(); }
+    bool IsEmpty(void) const { return AsBitSet().IsEmpty(); }
 
     /**
      * Checks if all TLVs in some TlvSet are contained in this TlvSet.
@@ -254,7 +255,7 @@ public:
      * @retval true   If all TLVs in aOther are also contained in this TlvSet.
      * @retval false  If not all TLVs in aOther are also contained in this TlvSet.
      */
-    bool ContainsAll(const TlvSet &aOther) const { return aOther.mBitSet.IsSubsetOf(mBitSet); }
+    bool ContainsAll(const TlvSet &aOther) const { return aOther.AsBitSet().IsSubsetOf(AsBitSet()); }
 
     /**
      * Adds a TLV to the TlvSet.
@@ -263,7 +264,7 @@ public:
      *
      * @param[in]  aType  The TLV to be added.
      */
-    void Set(Tlv::Type aType) { mBitSet.Add(aType); }
+    void Set(Tlv::Type aType) { AsBitSet().Add(aType); }
 
     /**
      * Adds a TLV by its raw value to the TlvSet.
@@ -280,7 +281,7 @@ public:
      *
      * @param[in]  aOther  The TLVs to be added to this TlvSet.
      */
-    void SetAll(const TlvSet &aOther) { mBitSet.UnionWith(aOther.mBitSet); }
+    void SetAll(const TlvSet &aOther) { AsBitSet().UnionWith(aOther.AsBitSet()); }
 
     /**
      * Removes all TLVs from this TlvSet which are not contained in the provided
@@ -288,7 +289,7 @@ public:
      *
      * @param[in]  aOther  The TLVs which are not removed from this TlvSet.
      */
-    void Filter(const TlvSet &aOther) { mBitSet.IntersectWith(aOther.mBitSet); }
+    void Filter(const TlvSet &aOther) { AsBitSet().IntersectWith(aOther.AsBitSet()); }
 
     /**
      * Removes all entries in the bitmask which do not correspond to supported TLVs.
@@ -317,7 +318,7 @@ public:
     /**
      * Removes all TLVs from this TlvSet.
      */
-    void Clear(void) { mBitSet.Clear(); }
+    void Clear(void) { ClearAllBytes(*this); }
 
     /**
      * Removes the specified TLV from this TlvSet.
@@ -326,14 +327,14 @@ public:
      *
      * @param[in]  aType  The TLV to be removed.
      */
-    void Clear(Tlv::Type aType) { mBitSet.Remove(aType); }
+    void Clear(Tlv::Type aType) { AsBitSet().Remove(aType); }
 
     /**
      * Removes all TLVs from a different TlvSet from this TlvSet.
      *
      * @param[in]  aOther  The TLVs which are to be removed from this TlvSet.
      */
-    void ClearAll(const TlvSet &aOther) { mBitSet.SubtractWith(aOther.mBitSet); }
+    void ClearAll(const TlvSet &aOther) { AsBitSet().SubtractWith(aOther.AsBitSet()); }
 
     /**
      * Creates a new TlvSet containing all TLVs from either this set or a provided
@@ -468,11 +469,16 @@ public:
      *
      * @returns A pointer to the byte array representing the bit mask.
      */
-    const uint8_t *GetMaskBytes(void) const { return mBitSet.GetMaskBytes(); }
+    const uint8_t *GetMaskBytes(void) const { return AsBitSet().GetMaskBytes(); }
 
 private:
-    BitSet<kNumBits> mBitSet;
+    BitSet<kNumBits>       &AsBitSet(void) { return *reinterpret_cast<BitSet<kNumBits> *>(mFields); }
+    const BitSet<kNumBits> &AsBitSet(void) const { return *reinterpret_cast<const BitSet<kNumBits> *>(mFields); }
 };
+
+static_assert(sizeof(BitSet<TlvSet::kNumBits>) <= sizeof(otMeshMonTlvSet),
+              "otMeshMonTlvSet is too small to hold the TlvSet bitmask");
+static_assert(sizeof(TlvSet) == sizeof(otMeshMonTlvSet), "TlvSet must not add data members beyond otMeshMonTlvSet");
 
 /**
  * Represents a Device Type used for Device Contexts.
@@ -992,6 +998,8 @@ private:
 } OT_TOOL_PACKED_END;
 
 } // namespace MeshMonitor
+
+DefineCoreType(otMeshMonTlvSet, MeshMonitor::TlvSet);
 
 } // namespace ot
 

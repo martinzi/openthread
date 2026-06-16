@@ -72,52 +72,53 @@ otError otMeshMonGetNextAloc(const otMessage *aMessage, otMeshMonAlocIterator *a
     return MeshMonitor::Client::GetNextAloc(AsCoapMessage(aMessage), *aIterator, *aAloc);
 }
 
-void otMeshMonStartClient(otInstance                    *aInstance,
-                          const ot::MeshMonitor::TlvSet *aHost,
-                          const ot::MeshMonitor::TlvSet *aChild,
-                          const ot::MeshMonitor::TlvSet *aNeighbor,
-                          const otIp6Address            *aDestination,
-                          otMeshMonServerUpdateCallback  aCallback,
-                          void                          *aContext)
+void otMeshMonStartClient(otInstance                   *aInstance,
+                          const otMeshMonTlvSet        *aHost,
+                          const otMeshMonTlvSet        *aChild,
+                          const otMeshMonTlvSet        *aNeighbor,
+                          const otIp6Address           *aDestination,
+                          otMeshMonServerUpdateCallback aCallback,
+                          void                         *aContext)
 {
-    AsCoreType(aInstance).Get<MeshMonitor::Client>().Start(aHost, aChild, aNeighbor, AsCoreTypePtr(aDestination),
+    AsCoreType(aInstance).Get<MeshMonitor::Client>().Start(AsCoreTypePtr(aHost), AsCoreTypePtr(aChild),
+                                                           AsCoreTypePtr(aNeighbor), AsCoreTypePtr(aDestination),
                                                            aCallback, aContext);
 }
 
 void otMeshMonStopClient(otInstance *aInstance) { AsCoreType(aInstance).Get<MeshMonitor::Client>().Stop(); }
 
-bool otMeshMonTlvIsSet(const ot::MeshMonitor::TlvSet *aTlvSet, uint8_t aTlv)
+bool otMeshMonTlvIsSet(const otMeshMonTlvSet *aTlvSet, uint8_t aTlv)
 {
     bool set = false;
 
     VerifyOrExit(aTlvSet != nullptr);
     VerifyOrExit(MeshMonitor::Tlv::IsKnownTlv(aTlv));
 
-    set = aTlvSet->IsSet(static_cast<MeshMonitor::Tlv::Type>(aTlv));
+    set = AsCoreType(aTlvSet).IsSet(static_cast<MeshMonitor::Tlv::Type>(aTlv));
 
 exit:
     return set;
 }
 
-otError otMeshMonSetTlv(ot::MeshMonitor::TlvSet *aTlvSet, uint8_t aTlv)
+otError otMeshMonSetTlv(otMeshMonTlvSet *aTlvSet, uint8_t aTlv)
 {
     Error error = kErrorNone;
 
     VerifyOrExit(aTlvSet != nullptr, error = kErrorInvalidArgs);
     VerifyOrExit(MeshMonitor::Tlv::IsKnownTlv(aTlv), error = kErrorInvalidArgs);
 
-    aTlvSet->Set(static_cast<MeshMonitor::Tlv::Type>(aTlv));
+    AsCoreType(aTlvSet).Set(static_cast<MeshMonitor::Tlv::Type>(aTlv));
 
 exit:
     return error;
 }
 
-void otMeshMonClearTlv(ot::MeshMonitor::TlvSet *aTlvSet, uint8_t aTlv)
+void otMeshMonClearTlv(otMeshMonTlvSet *aTlvSet, uint8_t aTlv)
 {
     VerifyOrExit(aTlvSet != nullptr);
     VerifyOrExit(MeshMonitor::Tlv::IsKnownTlv(aTlv));
 
-    aTlvSet->Clear(static_cast<MeshMonitor::Tlv::Type>(aTlv));
+    AsCoreType(aTlvSet).Clear(static_cast<MeshMonitor::Tlv::Type>(aTlv));
 
 exit:
     return;

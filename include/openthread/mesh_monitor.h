@@ -49,12 +49,6 @@ extern "C" {
  * @{
  */
 
-namespace ot {
-namespace MeshMonitor {
-class TlvSet;
-} // namespace MeshMonitor
-} // namespace ot
-
 /**
  * Represents the type of device in a Mesh Monitor device context.
  */
@@ -112,6 +106,14 @@ typedef uint16_t otMeshMonIterator; ///< Used to iterate through Device Contexts
  * Will be the smallest multiple of 4 that can contain all tlvs.
  */
 #define OT_MESH_MON_TLV_SET_SIZE (((OT_MESH_MON_DATA_TLV_MAX + 31U) & ~31U) / 8U)
+
+/**
+ * Represents a set of Mesh Monitor TLV types stored as a bitmask.
+ */
+typedef struct otMeshMonTlvSet
+{
+    uint8_t mFields[OT_MESH_MON_TLV_SET_SIZE]; ///< Reserved for internal use. DO NOT MODIFY.
+} otMeshMonTlvSet;
 
 /**
  * Represents a device context within a Mesh Monitor update.
@@ -329,13 +331,13 @@ otError otMeshMonGetNextAloc(const otMessage *aMessage, otMeshMonAlocIterator *a
  * @param[in] aCallback     Callback invoked when diagnostic information is received.
  * @param[in] aContext      Application-specific context passed to the callback.
  */
-void otMeshMonStartClient(otInstance                    *aInstance,
-                          const ot::MeshMonitor::TlvSet *aHost,
-                          const ot::MeshMonitor::TlvSet *aChild,
-                          const ot::MeshMonitor::TlvSet *aNeighbor,
-                          const otIp6Address            *aDestination,
-                          otMeshMonServerUpdateCallback  aCallback,
-                          void                          *aContext);
+void otMeshMonStartClient(otInstance                   *aInstance,
+                          const otMeshMonTlvSet        *aHost,
+                          const otMeshMonTlvSet        *aChild,
+                          const otMeshMonTlvSet        *aNeighbor,
+                          const otIp6Address           *aDestination,
+                          otMeshMonServerUpdateCallback aCallback,
+                          void                         *aContext);
 
 /**
  * Stops the Mesh Monitor Client and prevents all calls to any previously registered
@@ -359,7 +361,7 @@ void otMeshMonStopClient(otInstance *aInstance);
  * @retval false  The specified TLV type is not set, the set pointer is nullptr,
  *                or the TLV type is not recognized.
  */
-bool otMeshMonTlvIsSet(const ot::MeshMonitor::TlvSet *aTlvSet, uint8_t aTlv);
+bool otMeshMonTlvIsSet(const otMeshMonTlvSet *aTlvSet, uint8_t aTlv);
 
 /**
  * Sets the bit for a TLV in the provided TLV set.
@@ -372,7 +374,7 @@ bool otMeshMonTlvIsSet(const ot::MeshMonitor::TlvSet *aTlvSet, uint8_t aTlv);
  * @retval OT_ERROR_NONE          If the bit was successfully set, including if it was already set.
  * @retval OT_ERROR_INVALID_ARGS  If the TLV specified is not a known TLV or aTlvSet is NULL.
  */
-otError otMeshMonSetTlv(ot::MeshMonitor::TlvSet *aTlvSet, uint8_t aTlv);
+otError otMeshMonSetTlv(otMeshMonTlvSet *aTlvSet, uint8_t aTlv);
 
 /**
  * Clears a specific TLV from the Mesh Monitor TLV set.
@@ -385,7 +387,7 @@ otError otMeshMonSetTlv(ot::MeshMonitor::TlvSet *aTlvSet, uint8_t aTlv);
  *       returns early without modifying the TLV set.
  *
  */
-void otMeshMonClearTlv(ot::MeshMonitor::TlvSet *aTlvSet, uint8_t aTlv);
+void otMeshMonClearTlv(otMeshMonTlvSet *aTlvSet, uint8_t aTlv);
 
 /**
  * @}
