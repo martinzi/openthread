@@ -1549,10 +1549,7 @@ Error Server::AppendHostTlvs(Message &aMessage, TlvSet aTlvs)
             MacLinkErrorRatesRxTlv tlv;
             Parent                &parent = Get<Mle::Mle>().GetParent();
 
-            if (!Get<Mle::Mle>().IsChild())
-            {
-                break;
-            }
+            VerifyOrExit(Get<Mle::Mle>().IsChild());
 
             tlv.Init();
             tlv.SetMessageErrorRates(parent.GetLinkInfo().GetMessageErrorRate());
@@ -1576,10 +1573,7 @@ Error Server::AppendHostTlvs(Message &aMessage, TlvSet aTlvs)
             LinkMarginOutTlv tlv;
             Parent          &parent = Get<Mle::Mle>().GetParent();
 
-            if (!Get<Mle::Mle>().IsChild())
-            {
-                break;
-            }
+            VerifyOrExit(Get<Mle::Mle>().IsChild());
 
             tlv.Init();
             tlv.SetLinkMargin(parent.GetLinkInfo().GetLinkMargin());
@@ -2788,20 +2782,10 @@ Error Client::GetNextTlv(const Coap::Message &aMessage, otMeshMonContext &aConte
         case Tlv::kMacCounters:
         {
             NetDiag::MacCountersTlvValue data;
-            NetDiag::MacCounters         counters;
 
             SuccessOrExit(error = tlvInfo.Read<NetDiag::MacCountersTlv>(aMessage, data));
 
-            data.Read(counters);
-            aTlv.mData.mMacCounters.mIfInUnknownProtos  = counters.mIfInUnknownProtos;
-            aTlv.mData.mMacCounters.mIfInErrors         = counters.mIfInErrors;
-            aTlv.mData.mMacCounters.mIfOutErrors        = counters.mIfOutErrors;
-            aTlv.mData.mMacCounters.mIfInUcastPkts      = counters.mIfInUcastPkts;
-            aTlv.mData.mMacCounters.mIfInBroadcastPkts  = counters.mIfInBroadcastPkts;
-            aTlv.mData.mMacCounters.mIfInDiscards       = counters.mIfInDiscards;
-            aTlv.mData.mMacCounters.mIfOutUcastPkts     = counters.mIfOutUcastPkts;
-            aTlv.mData.mMacCounters.mIfOutBroadcastPkts = counters.mIfOutBroadcastPkts;
-            aTlv.mData.mMacCounters.mIfOutDiscards      = counters.mIfOutDiscards;
+            data.Read(aTlv.mData.mMacCounters);
             ExitNow();
         }
 
@@ -3100,16 +3084,14 @@ void Client::ProcessServerUpdate(Coap::Message &aMessage, const Ip6::MessageInfo
         mServerSeqNumbers[header.GetRouterId()] = next;
     }
 
-    if (mCallback != nullptr)
+    if (mCallback != nullptr && (aMessage.GetOffset() + header.GetLength()) < aMessage.GetLength())
     {
-        bool hasPayload = (aMessage.GetOffset() + header.GetLength()) < aMessage.GetLength();
-
-        LogCrit("ProcessServerUpdate: invoking callback (hasPayload=%s)", hasPayload ? "yes" : "no");
+        LogCrit("ProcessServerUpdate: invoking callback");
         (mCallback)(&aMessage, Mle::Rloc16FromRouterId(header.GetRouterId()), header.GetComplete(), mCallbackContext);
     }
     else
     {
-        LogCrit("ProcessServerUpdate: NOT invoking callback (hasCallback=no)");
+        LogCrit("ProcessServerUpdate: NOT invoking callback");
     }
 
 exit:
