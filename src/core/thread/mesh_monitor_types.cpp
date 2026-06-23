@@ -27,8 +27,8 @@
  */
 
 #include "thread/mesh_monitor_types.hpp"
+#include <openthread/mesh_monitor.h>
 #include "common/log.hpp"
-#include "openthread/mesh_monitor.h"
 #include "utils/static_counter.hpp"
 
 namespace ot {
