@@ -52,8 +52,6 @@ class Router;
 
 namespace MeshMonitor {
 
-class Client;
-
 #if OPENTHREAD_CONFIG_MESH_MONITOR_SERVER_ENABLE
 /**
  * Implements the Mesh Monitor server functionality for both routers and end devices.
