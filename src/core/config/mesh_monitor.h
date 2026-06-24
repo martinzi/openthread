@@ -74,7 +74,7 @@
 #endif
 
 /**
- * @def OPENTHREAD_CONFIG_MESH_MONITOR_CACHE_BUFFER_LIMIT
+ * @def OPENTHREAD_CONFIG_MESH_MONITOR_CACHE_BUFFERS_LIMIT
  *
  * If the number of cache buffers used for the monitor cache exceeds this
  * value an update message will be sent irrespective of current timer state.

@@ -193,8 +193,8 @@ typedef struct otMeshMonLinkMargin
  */
 typedef struct otMeshMonMacLinkErrorRates
 {
-    uint8_t mMessageErrorRate; ///< Message error rate
-    uint8_t mFrameErrorRate;   ///< Frame error rate
+    uint16_t mMessageErrorRate; ///< Message error rate (0x0000-0xFFFF = 100%)
+    uint16_t mFrameErrorRate;   ///< Frame error rate (0x0000-0xFFFF = 100%)
 } otMeshMonMacLinkErrorRates;
 
 /**
@@ -354,12 +354,12 @@ void otMeshMonStopClient(otInstance *aInstance);
  * Checks if a specific TLV type is set in the Mesh Monitor TLV set.
  *
  * @param[in] aTlvSet  A pointer to the Mesh Monitor TLV set to query.
- *                     Must not be nullptr.
+ *                     Must not be a null pointer.
  * @param[in] aTlv     The TLV type identifier to check for in the set.
  *                     Must be a known/valid TLV type.
  *
  * @retval true   The specified TLV type is set in the TLV set.
- * @retval false  The specified TLV type is not set, the set pointer is nullptr,
+ * @retval false  The specified TLV type is not set, the set pointer is a null pointer,
  *                or the TLV type is not recognized.
  */
 bool otMeshMonTlvIsSet(const otMeshMonTlvSet *aTlvSet, uint8_t aTlv);
