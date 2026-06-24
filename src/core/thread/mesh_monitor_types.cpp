@@ -274,13 +274,8 @@ Error TlvSet::AppendTo(Message &aMessage, uint8_t &aSetCount) const
         }
 
         valLength = 1;
-        while (mask[valOffset + valLength] != 0)
+        while ((valOffset + valLength < kMaskSize) && (mask[valOffset + valLength] != 0))
         {
-            if (valOffset + valLength >= kMaskSize)
-            {
-                break;
-            }
-
             valLength++;
         }
 
@@ -464,7 +459,7 @@ Error UpdateHeader::AppendTo(Message &aMessage) const
     if (HasFullSeqNumber())
     {
         uint64_t number = BigEndian::HostSwap64(mSeqNumber);
-        SuccessOrExit(aMessage.Append(number));
+        SuccessOrExit(error = aMessage.Append(number));
     }
     else
     {

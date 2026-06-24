@@ -472,8 +472,11 @@ public:
     const uint8_t *GetMaskBytes(void) const { return AsBitSet().GetMaskBytes(); }
 
 private:
-    BitSet<kNumBits>       &AsBitSet(void) { return *reinterpret_cast<BitSet<kNumBits> *>(mFields); }
-    const BitSet<kNumBits> &AsBitSet(void) const { return *reinterpret_cast<const BitSet<kNumBits> *>(mFields); }
+    BitSet<kNumBits> &AsBitSet(void) { return *static_cast<BitSet<kNumBits> *>(static_cast<void *>(mFields)); }
+    const BitSet<kNumBits> &AsBitSet(void) const
+    {
+        return *static_cast<const BitSet<kNumBits> *>(static_cast<const void *>(mFields));
+    }
 };
 
 static_assert(sizeof(BitSet<TlvSet::kNumBits>) <= sizeof(otMeshMonTlvSet),
@@ -584,14 +587,14 @@ public:
      *
      * @returns The Length value.
      */
-    uint16_t GetLength(void) const { return mLength; }
+    uint16_t GetLength(void) const { return BigEndian::HostSwap16(mLength); }
 
     /**
      * Sets the Length value.
      *
      * @param[in]  aLength  The Length value.
      */
-    void SetLength(uint16_t aLength) { mLength = aLength; }
+    void SetLength(uint16_t aLength) { mLength = BigEndian::HostSwap16(aLength); }
 
 private:
     uint8_t  mTypeCount;
