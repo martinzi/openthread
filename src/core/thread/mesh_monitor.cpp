@@ -166,7 +166,7 @@ Error Server::ChildInfo::RemoveCachedTlv(uint8_t aType)
 
     while (offset < mCache->GetLength())
     {
-        uint16_t tlvSize;
+        uint32_t tlvSize;
         union
         {
             Tlv         tlv;
@@ -185,15 +185,15 @@ Error Server::ChildInfo::RemoveCachedTlv(uint8_t aType)
             tlvSize = sizeof(Tlv) + tlv.GetLength();
         }
 
-        VerifyOrExit(offset + tlvSize <= mCache->GetLength(), error = kErrorParse);
+        VerifyOrExit(static_cast<uint32_t>(offset) + tlvSize <= mCache->GetLength(), error = kErrorParse);
 
         if (tlv.GetType() == aType)
         {
-            mCache->RemoveHeader(offset, tlvSize);
+            mCache->RemoveHeader(offset, static_cast<uint16_t>(tlvSize));
             break;
         }
 
-        offset += tlvSize;
+        offset += static_cast<uint16_t>(tlvSize);
     }
 
 exit:
@@ -220,19 +220,23 @@ Error Server::ChildInfo::UpdateCache(const Message &aMessage, TlvSet aFilter)
 
     while (srcOffset < aMessage.GetLength())
     {
+        uint32_t tlvSize;
+
         SuccessOrExit(error = aMessage.Read(srcOffset, tlv));
 
         if (tlv.IsExtended())
         {
             SuccessOrExit(error = aMessage.Read(srcOffset, extTlv));
-            srcRange.Init(srcOffset, extTlv.GetLength() + sizeof(ExtendedTlv));
+            tlvSize = sizeof(ExtendedTlv) + extTlv.GetLength();
         }
         else
         {
-            srcRange.Init(srcOffset, tlv.GetLength() + sizeof(Tlv));
+            tlvSize = sizeof(Tlv) + tlv.GetLength();
         }
 
-        VerifyOrExit(srcRange.GetEndOffset() <= aMessage.GetLength(), error = kErrorParse);
+        VerifyOrExit(static_cast<uint32_t>(srcOffset) + tlvSize <= aMessage.GetLength(), error = kErrorParse);
+
+        srcRange.Init(srcOffset, static_cast<uint16_t>(tlvSize));
         srcOffset = srcRange.GetEndOffset();
 
         set.Clear();
@@ -729,7 +733,7 @@ template <> void Server::HandleTmf<kUriMeshMonServerRequest>(Coap::Msg &aMsg)
         }
 
         VerifyOrExit(context.GetLength() >= sizeof(RequestContext) &&
-                     offset + context.GetLength() <= aMsg.mMessage.GetLength());
+                     static_cast<uint32_t>(offset) + context.GetLength() <= aMsg.mMessage.GetLength());
         offset += context.GetLength();
     }
 
@@ -2450,9 +2454,6 @@ exit:
 
 void Server::HandleRegistrationTimer(void)
 {
-    TlvSet mtd = mChildEnabled.GetMtdChildProvided();
-    TlvSet ftd = mChildEnabled.GetFtdChildProvided();
-
     VerifyOrExit(mActive && Get<Mle::Mle>().IsRouterOrLeader());
 
     // If client didn't register this interval, stop server
@@ -2472,8 +2473,7 @@ void Server::HandleRegistrationTimer(void)
     else
     {
         mRegistrationTimer.Start(kRegistrationInterval);
-        SyncAllChildDiagStates(mtd != mChildEnabled.GetMtdChildProvided(), ftd != mChildEnabled.GetFtdChildProvided(),
-                               false);
+        SyncAllChildDiagStates(false, false, false);
     }
 
 exit:
