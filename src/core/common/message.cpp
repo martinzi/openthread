@@ -751,34 +751,6 @@ exit:
     return (bytesToCompare == 0);
 }
 
-Error Message::ResizeRegion(uint16_t aOffset, uint16_t aOldLength, uint16_t aNewLength)
-{
-    Error    error = kErrorNone;
-    uint16_t tail  = GetLength() - (aOffset + aOldLength);
-
-    OT_ASSERT(aOffset + aOldLength <= GetLength());
-
-    if (aNewLength < aOldLength)
-    {
-        if (tail > 0)
-        {
-            WriteBytesFromMessage(aOffset + aNewLength, *this, aOffset + aOldLength, tail);
-        }
-        SuccessOrExit(error = ResizeMessage(GetLength() - (aOldLength - aNewLength)));
-    }
-    else if (aNewLength > aOldLength)
-    {
-        SuccessOrExit(error = ResizeMessage(GetLength() + (aNewLength - aOldLength)));
-        if (tail > 0)
-        {
-            WriteBytesFromMessage(aOffset + aNewLength, *this, aOffset + aOldLength, tail);
-        }
-    }
-
-exit:
-    return error;
-}
-
 void Message::WriteBytes(uint16_t aOffset, const void *aBuf, uint16_t aLength)
 {
     const uint8_t *bufPtr = reinterpret_cast<const uint8_t *>(aBuf);

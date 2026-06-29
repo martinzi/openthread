@@ -242,6 +242,14 @@ public:
         Error UpdateCache(const Message &aMessage, TlvSet aFilter);
 
         /**
+         * Removes a previously cached TLV of the given type from the cache, if present.
+         *
+         * Ensures the cache holds at most one copy of each TLV type so a server
+         * update never carries duplicate TLVs.
+         */
+        Error RemoveCachedTlv(uint8_t aType);
+
+        /**
          * Appends the current diag cache to the message.
          *
          * MUST be called within a diagnostic update block by first calling

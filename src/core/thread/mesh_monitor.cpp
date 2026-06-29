@@ -157,15 +157,56 @@ void Server::ChildInfo::ClearCache(void)
     mCacheBuffers = 0;
 }
 
+Error Server::ChildInfo::RemoveCachedTlv(uint8_t aType)
+{
+    Error    error  = kErrorNone;
+    uint16_t offset = 0;
+
+    VerifyOrExit(mCache != nullptr);
+
+    while (offset < mCache->GetLength())
+    {
+        uint16_t tlvSize;
+        union
+        {
+            Tlv         tlv;
+            ExtendedTlv extTlv;
+        };
+
+        SuccessOrExit(error = mCache->Read(offset, tlv));
+
+        if (tlv.IsExtended())
+        {
+            SuccessOrExit(error = mCache->Read(offset, extTlv));
+            tlvSize = sizeof(ExtendedTlv) + extTlv.GetLength();
+        }
+        else
+        {
+            tlvSize = sizeof(Tlv) + tlv.GetLength();
+        }
+
+        VerifyOrExit(offset + tlvSize <= mCache->GetLength(), error = kErrorParse);
+
+        if (tlv.GetType() == aType)
+        {
+            mCache->RemoveHeader(offset, tlvSize);
+            break;
+        }
+
+        offset += tlvSize;
+    }
+
+exit:
+    return error;
+}
+
 Error Server::ChildInfo::UpdateCache(const Message &aMessage, TlvSet aFilter)
 {
     Error    error     = kErrorNone;
     uint16_t srcOffset = aMessage.GetOffset();
-    uint16_t dstOffset;
 
     TlvSet      set;
     OffsetRange srcRange;
-    OffsetRange dstRange;
     union
     {
         Tlv         tlv;
@@ -218,46 +259,15 @@ Error Server::ChildInfo::UpdateCache(const Message &aMessage, TlvSet aFilter)
             VerifyOrExit(mCache != nullptr, error = kErrorNoBufs);
         }
 
-        // We already made sure the tlv is child provided
+        // We already made sure the TLV is child provided. To keep exactly one
+        // copy of each TLV in the cache, remove any previously cached copy of
+        // this type before appending the newest value.
         if (mDirtySet.ContainsAll(set))
         {
-            uint8_t targetType = tlv.GetType();
-
-            {
-                bool found = false;
-
-                for (dstOffset = mCache->GetOffset(); dstOffset < mCache->GetLength();)
-                {
-                    SuccessOrExit(error = mCache->Read(dstOffset, tlv));
-
-                    if (tlv.GetType() == targetType)
-                    {
-                        found = true;
-                        break;
-                    }
-
-                    dstOffset +=
-                        tlv.IsExtended() ? sizeof(ExtendedTlv) + tlv.GetLength() : sizeof(Tlv) + tlv.GetLength();
-                }
-
-                VerifyOrExit(found, error = kErrorNotFound);
-            }
-            if (tlv.IsExtended())
-            {
-                dstRange.Init(dstOffset, extTlv.GetLength() + sizeof(ExtendedTlv));
-            }
-            else
-            {
-                dstRange.Init(dstOffset, tlv.GetLength() + sizeof(Tlv));
-            }
-
-            SuccessOrExit(error = mCache->ResizeRegion(dstOffset, dstRange.GetLength(), srcRange.GetLength()));
-            mCache->WriteBytesFromMessage(dstOffset, aMessage, srcRange.GetOffset(), srcRange.GetLength());
+            SuccessOrExit(error = RemoveCachedTlv(tlv.GetType()));
         }
-        else
-        {
-            SuccessOrExit(error = mCache->AppendBytesFromMessage(aMessage, srcRange.GetOffset(), srcRange.GetLength()));
-        }
+
+        SuccessOrExit(error = mCache->AppendBytesFromMessage(aMessage, srcRange.GetOffset(), srcRange.GetLength()));
 
         mDirtySet.SetAll(set);
     }
@@ -463,7 +473,7 @@ void Server::HandleRouterAdded(Router &aRouter)
 {
     VerifyOrExit(mActive);
 
-    mRouterStateMask |= (1U << aRouter.GetRouterId());
+    mRouterStateMask |= (1ULL << aRouter.GetRouterId());
 
     if (!mNeighborEnabled.IsEmpty())
     {
@@ -478,7 +488,7 @@ void Server::HandleRouterRemoved(Router &aRouter)
 {
     VerifyOrExit(mActive);
 
-    mRouterStateMask |= (1U << aRouter.GetRouterId());
+    mRouterStateMask |= (1ULL << aRouter.GetRouterId());
 
     if (!mNeighborEnabled.IsEmpty())
     {
@@ -679,8 +689,6 @@ template <> void Server::HandleTmf<kUriMeshMonServerRequest>(Coap::Msg &aMsg)
     TlvSet childSet;
     TlvSet neighborSet;
 
-    LogCrit("Server::HandleTmf<kUriMeshMonServerRequest> called");
-
     VerifyOrExit(aMsg.IsPostRequest());
     SuccessOrExit(aMsg.mMessage.Read(aMsg.mMessage.GetOffset(), header));
 
@@ -720,6 +728,7 @@ template <> void Server::HandleTmf<kUriMeshMonServerRequest>(Coap::Msg &aMsg)
             break;
         }
 
+        VerifyOrExit(context.GetLength() >= sizeof(RequestContext));
         offset += context.GetLength();
     }
 
@@ -1075,7 +1084,7 @@ Error Server::ConfigureAsRouter(const TlvSet &aSelf, const TlvSet &aChild, const
 
     if (!mActive)
     {
-        VerifyOrExit(!aSelf.IsEmpty() || !aChild.IsEmpty(), error = kErrorInvalidArgs);
+        VerifyOrExit(!aSelf.IsEmpty() || !aChild.IsEmpty() || !aNeighbor.IsEmpty(), error = kErrorInvalidArgs);
 
         mSequenceNumber = Random::NonCrypto::Generate<uint32_t>();
         mSequenceNumber |= static_cast<uint64_t>(Random::NonCrypto::Generate<uint32_t>()) << 32;
@@ -1798,14 +1807,14 @@ Error Server::AppendNeighborContextUpdate(Message &aMessage, uint8_t aId)
     NeighborContext context;
     uint16_t        offset = aMessage.GetLength();
 
-    VerifyOrExit(valid || (mRouterStateMask & (1U << aId)) != 0);
+    VerifyOrExit(valid || (mRouterStateMask & (1ULL << aId)) != 0);
 
     context.Init();
     context.SetType(kTypeNeighbor);
     context.SetId(aId);
     if (valid)
     {
-        if (mRouterStateMask & (1U << aId))
+        if (mRouterStateMask & (1ULL << aId))
         {
             context.SetUpdateMode(kModeAdded);
         }
@@ -2064,7 +2073,7 @@ bool Server::ShouldIncludeIp6Address(const Ip6::Address &aAddress)
     VerifyOrExit(aAddress != Ip6::Address::GetRealmLocalAllNodesMulticast());
     VerifyOrExit(aAddress != Ip6::Address::GetRealmLocalAllRoutersMulticast());
     VerifyOrExit(aAddress != Ip6::Address::GetRealmLocalAllMplForwarders());
-    VerifyOrExit(!aAddress.GetIid().IsAnycastLocator());
+    VerifyOrExit(aAddress.IsMulticast() || !aAddress.GetIid().IsAnycastLocator());
 
     pass = true;
 
@@ -2443,7 +2452,7 @@ void Server::HandleRegistrationTimer(void)
     // Reset registration flag for next interval
     mClientRegistered = false;
 
-    if (mSelfEnabled.IsEmpty() && mChildEnabled.IsEmpty())
+    if (mSelfEnabled.IsEmpty() && mChildEnabled.IsEmpty() && mNeighborEnabled.IsEmpty())
     {
         StopServer();
     }
@@ -2565,6 +2574,8 @@ Error Client::GetNextContext(const Coap::Message &aMessage, otMeshMonIterator &a
     {
         SuccessOrExit(error = aMessage.Read(aIterator, context));
         offset = aIterator;
+        VerifyOrExit(context.GetLength() >= sizeof(Context), error = kErrorParse);
+        VerifyOrExit(offset + context.GetLength() <= aMessage.GetLength(), error = kErrorParse);
         aIterator += context.GetLength();
 
         aContext.mData2 = aIterator;
@@ -2888,12 +2899,9 @@ Error Client::SendServerRequest(bool aQuery)
     Error          error   = kErrorNone;
     Coap::Message *message = nullptr;
 
-    LogCrit("Client::SendServerRequest(aQuery=%s) called", aQuery ? "true" : "false");
-
     SuccessOrExit(error = PrepareServerRequest(aQuery, true, message));
     SuccessOrExit(error = Get<Tmf::Agent>().SendMessageAllowMulticastLoop(
                       *message, Ip6::Address::GetRealmLocalAllRoutersMulticast()));
-    LogCrit("Client::SendServerRequest sent successfully");
 
 exit:
     if (error != kErrorNone)
@@ -3017,9 +3025,6 @@ template <> void Client::HandleTmf<kUriMeshMonServerUpdate>(Coap::Msg &aMsg)
 {
     Error error = kErrorNone;
 
-    LogCrit("Client received %s from %s", UriToString<kUriMeshMonServerUpdate>(),
-            aMsg.mMessageInfo.GetPeerAddr().ToString().AsCString());
-
     VerifyOrExit(mActive);
 
     ProcessServerUpdate(aMsg.mMessage, aMsg.mMessageInfo);
@@ -3045,10 +3050,7 @@ void Client::ProcessServerUpdate(Coap::Message &aMessage, const Ip6::MessageInfo
 
     OT_UNUSED_VARIABLE(aMessageInfo);
 
-    LogCrit("ProcessServerUpdate: offset=%u, length=%u", aMessage.GetOffset(), aMessage.GetLength());
-
     SuccessOrExit(header.ReadFrom(aMessage));
-    LogCrit("ProcessServerUpdate: routerId=%u, headerLen=%u", header.GetRouterId(), header.GetLength());
     VerifyOrExit(header.GetRouterId() <= Mle::kMaxRouterId);
 
     // Clear query pending when we receive ANY update from ANY router
@@ -3074,7 +3076,6 @@ void Client::ProcessServerUpdate(Coap::Message &aMessage, const Ip6::MessageInfo
 
         if (sequenceError)
         {
-            LogCrit("Sequence error occurred!");
             IgnoreError(mUseUnicastDestination
                             ? SendServerRequest(true, mDestination, true)
                             : SendServerRequest(true, Mle::Rloc16FromRouterId(header.GetRouterId()), true));
@@ -3086,12 +3087,7 @@ void Client::ProcessServerUpdate(Coap::Message &aMessage, const Ip6::MessageInfo
 
     if (mCallback != nullptr && (aMessage.GetOffset() + header.GetLength()) < aMessage.GetLength())
     {
-        LogCrit("ProcessServerUpdate: invoking callback");
         (mCallback)(&aMessage, Mle::Rloc16FromRouterId(header.GetRouterId()), header.GetComplete(), mCallbackContext);
-    }
-    else
-    {
-        LogCrit("ProcessServerUpdate: NOT invoking callback");
     }
 
 exit:
