@@ -257,8 +257,6 @@ public:
          */
         Error AppendCachedTlvs(Message &aMessage);
 
-        void SetDiagClean(void);
-
         TlvSet GetLostDiag(void) const { return mLostSet; }
 
         bool ShouldSendLostDiagQuery(void) const { return !mLostSet.IsEmpty() && !mLostQueryPending; }

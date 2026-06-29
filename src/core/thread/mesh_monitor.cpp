@@ -728,7 +728,8 @@ template <> void Server::HandleTmf<kUriMeshMonServerRequest>(Coap::Msg &aMsg)
             break;
         }
 
-        VerifyOrExit(context.GetLength() >= sizeof(RequestContext));
+        VerifyOrExit(context.GetLength() >= sizeof(RequestContext) &&
+                     offset + context.GetLength() <= aMsg.mMessage.GetLength());
         offset += context.GetLength();
     }
 
@@ -1904,15 +1905,23 @@ exit:
 
 bool Server::AppendChildContextBatch(Message &aMessage, bool &aNeedsMore)
 {
-    bool               success    = true;
-    uint16_t           childIndex = 0;
-    uint16_t           startIndex = mChildResumeIndex;
-    Child::StateFilter filter     = mSendChildBaseline ? Child::kInStateValid : Child::kInStateAny;
+    bool               success        = true;
+    uint16_t           childIndex     = 0;
+    uint16_t           startIndex     = mChildResumeIndex;
+    Child::StateFilter filter         = mSendChildBaseline ? Child::kInStateValid : Child::kInStateAny;
+    bool               abortRemaining = false;
 
     aNeedsMore = false;
 
     for (Child &child : Get<ChildTable>().Iterate(filter))
     {
+        if (abortRemaining)
+        {
+            child.AbortCacheUpdate();
+            childIndex++;
+            continue;
+        }
+
         if (childIndex < startIndex)
         {
             childIndex++;
@@ -1938,13 +1947,17 @@ bool Server::AppendChildContextBatch(Message &aMessage, bool &aNeedsMore)
             child.AbortCacheUpdate();
             aNeedsMore        = true;
             mChildResumeIndex = childIndex;
-            break;
+            abortRemaining    = true;
+            childIndex++;
+            continue;
         }
 
         if (error != kErrorNone)
         {
-            success = false;
-            break;
+            success        = false;
+            abortRemaining = true;
+            childIndex++;
+            continue;
         }
 
         childIndex++;
