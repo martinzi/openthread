@@ -34,7 +34,6 @@
 #include "message.hpp"
 
 #include "instance/instance.hpp"
-#include "thread/mesh_monitor.hpp"
 
 #if OPENTHREAD_MTD || OPENTHREAD_FTD
 
