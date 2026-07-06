@@ -2074,9 +2074,12 @@ void Server::CommitChildCacheUpdates(void)
 
 void Server::UnlockChildCaches(void)
 {
-    for (Child &child : Get<ChildTable>().Iterate(Child::kInStateValid))
+    for (Child &child : Get<ChildTable>().Iterate(Child::kInStateAny))
     {
-        child.AbortCacheUpdate();
+        if (child.IsDiagCacheLocked())
+        {
+            child.AbortCacheUpdate();
+        }
     }
 }
 #endif // OPENTHREAD_FTD
