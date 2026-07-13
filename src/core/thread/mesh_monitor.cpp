@@ -321,7 +321,7 @@ Server::Server(Instance &aInstance)
     , mUpdatePending(false)
     , mChildResumeIndex(0)
     , mNeighborResumeIndex(0)
-    , mClientRloc(0)
+    , mClientRloc(Mle::kInvalidRloc16)
     , mUpdateRetryCount(0)
     , mCacheSyncEvictions(0)
     , mCachePollEvictions(0)
@@ -702,6 +702,15 @@ template <> void Server::HandleTmf<kUriMeshMonServerRequest>(Coap::Msg &aMsg)
     VerifyOrExit(Get<Mle::Mle>().IsRouterOrLeader());
     VerifyOrExit(aMsg.mMessageInfo.GetPeerAddr().GetIid().IsRoutingLocator());
 
+    if (header.GetRegistration() && (mClientRloc != Mle::kInvalidRloc16) &&
+        (aMsg.mMessageInfo.GetPeerAddr().GetIid().GetLocator() != mClientRloc))
+    {
+        LogInfo("Rejecting registration from %04x, client %04x already registered",
+                aMsg.mMessageInfo.GetPeerAddr().GetIid().GetLocator(), mClientRloc);
+        IgnoreError(Get<Tmf::Agent>().SendAckResponse(aMsg, Coap::kCodeForbidden));
+        ExitNow();
+    }
+
     hostSet.Clear();
     childSet.Clear();
     neighborSet.Clear();
@@ -833,6 +842,7 @@ void Server::StopServer(void)
     mNeighborEnabled.Clear();
 
     mClientRegistered = false;
+    mClientRloc       = Mle::kInvalidRloc16;
 
     for (Child &child : Get<ChildTable>().Iterate(Child::kInStateAny))
     {
