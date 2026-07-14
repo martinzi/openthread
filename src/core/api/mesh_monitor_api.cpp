@@ -72,17 +72,31 @@ otError otMeshMonGetNextAloc(const otMessage *aMessage, otMeshMonAlocIterator *a
     return MeshMonitor::Client::GetNextAloc(AsCoapMessage(aMessage), *aIterator, *aAloc);
 }
 
-void otMeshMonStartClient(otInstance                   *aInstance,
-                          const otMeshMonTlvSet        *aHost,
-                          const otMeshMonTlvSet        *aChild,
-                          const otMeshMonTlvSet        *aNeighbor,
-                          const otIp6Address           *aDestination,
-                          otMeshMonServerUpdateCallback aCallback,
-                          void                         *aContext)
+otError otMeshMonStartClient(otInstance                   *aInstance,
+                             const otMeshMonTlvSet        *aHost,
+                             const otMeshMonTlvSet        *aChild,
+                             const otMeshMonTlvSet        *aNeighbor,
+                             const otIp6Address           *aDestination,
+                             otMeshMonServerUpdateCallback aCallback,
+                             void                         *aContext)
 {
+    Error error = kErrorNone;
+
+    VerifyOrExit(aCallback != nullptr, error = kErrorInvalidArgs);
+
+    if (aDestination != nullptr)
+    {
+        const Ip6::Address &destination = AsCoreType(aDestination);
+
+        VerifyOrExit(!destination.IsUnspecified() && !destination.IsMulticast(), error = kErrorInvalidArgs);
+    }
+
     AsCoreType(aInstance).Get<MeshMonitor::Client>().Start(AsCoreTypePtr(aHost), AsCoreTypePtr(aChild),
                                                            AsCoreTypePtr(aNeighbor), AsCoreTypePtr(aDestination),
                                                            aCallback, aContext);
+
+exit:
+    return error;
 }
 
 void otMeshMonStopClient(otInstance *aInstance) { AsCoreType(aInstance).Get<MeshMonitor::Client>().Stop(); }

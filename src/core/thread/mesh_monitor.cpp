@@ -707,7 +707,7 @@ template <> void Server::HandleTmf<kUriMeshMonServerRequest>(Coap::Msg &aMsg)
     {
         LogInfo("Rejecting registration from %04x, client %04x already registered",
                 aMsg.mMessageInfo.GetPeerAddr().GetIid().GetLocator(), mClientRloc);
-        IgnoreError(Get<Tmf::Agent>().SendAckResponse(aMsg, Coap::kCodeForbidden));
+        IgnoreError(Get<Tmf::Agent>().SendAckResponse(aMsg, Coap::kCodeTooManyRequests));
         ExitNow();
     }
 
@@ -2414,6 +2414,20 @@ void Server::HandleUpdateTimer(void)
     else
     {
         mSelfDirty = GetExtDelayTlvs(mSelfEnabled);
+
+#if OPENTHREAD_FTD
+        {
+            TlvSet childExtDelay = GetExtDelayTlvs(mChildEnabled);
+
+            if (!childExtDelay.IsEmpty())
+            {
+                for (Child &child : Get<ChildTable>().Iterate(Child::kInStateValid))
+                {
+                    child.MarkHostProvidedTlvsChanged(childExtDelay);
+                }
+            }
+        }
+#endif
 
         if (!mSelfDirty.IsEmpty()
 #if OPENTHREAD_FTD

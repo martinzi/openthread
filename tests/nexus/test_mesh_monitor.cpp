@@ -136,7 +136,8 @@ void DiagnosticValidator::Start(const MeshMonitor::TlvSet &aHost,
     mHostRequested  = aHost;
     mChildRequested = aChild;
 
-    otMeshMonStartClient(&mNode.GetInstance(), &aHost, &aChild, &aNeighbor, nullptr, HandleServerUpdate, this);
+    SuccessOrQuit(
+        otMeshMonStartClient(&mNode.GetInstance(), &aHost, &aChild, &aNeighbor, nullptr, HandleServerUpdate, this));
 }
 
 void DiagnosticValidator::Stop(void) { otMeshMonStopClient(&mNode.GetInstance()); }

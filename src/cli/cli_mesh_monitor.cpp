@@ -96,8 +96,8 @@ otError MeshMonitorClient::Process(Arg aArgs[])
     }
     else if (aArgs[0] == "start")
     {
-        otMeshMonStartClient(GetInstancePtr(), &mHostTlvs, &mChildTlvs, &mNeighborTlvs,
-                             mHasDestination ? &mDestination : nullptr, HandleServerUpdate, this);
+        SuccessOrExit(error = otMeshMonStartClient(GetInstancePtr(), &mHostTlvs, &mChildTlvs, &mNeighborTlvs,
+                                                   mHasDestination ? &mDestination : nullptr, HandleServerUpdate, this));
     }
 
 exit:

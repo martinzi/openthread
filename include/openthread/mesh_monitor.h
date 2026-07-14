@@ -122,29 +122,42 @@ typedef struct otMeshMonTlvSet
  * A server update may contain multiple contexts, one per reported device
  * instance (e.g. one context per child, one per neighbor). Each context
  * groups the set of TLVs that describe that particular device.
+ *
+ * A context may be flagged as `legacy` (see `mLegacy`). A legacy context
+ * describes a child that does not support the Mesh Monitor protocol. Such a
+ * child is still reported by its parent router, but the mesh monitoring TLVs
+ * it would normally provide may be unavailable. In that case a client may fall
+ * back to a Network Diagnostic request/query to obtain the missing data.
  */
 typedef struct otMeshMonContext
 {
     uint16_t mRloc16;     ///< The Rloc16 of the device.
     uint8_t  mType;       ///< The Type of the device (otMeshMonDeviceType).
     uint8_t  mUpdateMode; ///< The update mode of the context (otMeshMonUpdateMode). Only valid if child or neighbor.
-    bool     mLegacy;     ///< The legacy flag of the context. Only valid if `mType` is child.
+    bool     mLegacy;     ///< TRUE if the child does not support Mesh Monitor (its TLVs may be unavailable). Only valid
+                          ///< if `mType` is child.
     uint16_t mData;       ///< Reserved for internal use. DO NOT MODIFY.
     uint16_t mData2;      ///< Reserved for internal use. DO NOT MODIFY.
 } otMeshMonContext;
 
 /**
  * Represents the CSL TLV value.
+ *
+ * This is a compact form of the CSL Channel information: it carries only the
+ * 8-bit channel value and assumes the default 2.4 GHz IEEE 802.15.4 channel
+ * page (i.e. no separate Channel Page field). This matches the channels used
+ * in Thread today. Newer Mesh Monitor CSL TLVs may be defined in the future if
+ * other PHYs / channel pages need to be reported.
  */
 typedef struct otMeshMonCsl
 {
     uint32_t mTimeout; ///< CSL timeout in seconds
     uint16_t mPeriod;  ///< CSL period
-    uint8_t  mChannel; ///< CSL channel
+    uint8_t  mChannel; ///< CSL channel (2.4 GHz IEEE 802.15.4 channel page assumed)
 } otMeshMonCsl;
 
 /**
- * Iterator over an IPv6 address list value (used for `OT_MESH_MON_TLV_IP6_ADDRESS_LIST`
+ * Iterator over an IPv6 address list TLV value (used for `OT_MESH_MON_TLV_IP6_ADDRESS_LIST`
  * and `OT_MESH_MON_TLV_IP6_LINK_LOCAL_ADDRESS_LIST`).
  *
  * Use `otMeshMonGetNextIp6Address()` to walk through the addresses. Treat the
@@ -157,7 +170,7 @@ typedef struct otMeshMonIp6AddrIterator
 } otMeshMonIp6AddrIterator;
 
 /**
- * Iterator over a list of ALOC16 (anycast locator) of device value (used for `OT_MESH_MON_TLV_ALOC_LIST`).
+ * Iterator over a list of ALOC16 (anycast locator) of device TLV value (used for `OT_MESH_MON_TLV_ALOC_LIST`).
  *
  * Use `otMeshMonGetNextAloc()` to walk through the entries. Treat the fields
  * as opaque.
@@ -198,7 +211,7 @@ typedef struct otMeshMonMacLinkErrorRates
 } otMeshMonMacLinkErrorRates;
 
 /**
- * Represents an Mesh Monitor TLV.
+ * Represents a Mesh Monitor TLV.
  */
 typedef struct otMeshMonTlv
 {
@@ -294,6 +307,8 @@ otError otMeshMonGetNextTlv(const otMessage *aMessage, otMeshMonContext *aContex
  * @retval OT_ERROR_NONE       Successfully retrieved the next address.
  * @retval OT_ERROR_NOT_FOUND  No more addresses in the list.
  * @retval OT_ERROR_PARSE      Failed to parse an address.
+ *
+ * @Note A subsequent call to this function is only allowed when the current return value is OT_ERROR_NONE.
  */
 otError otMeshMonGetNextIp6Address(const otMessage          *aMessage,
                                    otMeshMonIp6AddrIterator *aIterator,
@@ -314,39 +329,56 @@ otError otMeshMonGetNextIp6Address(const otMessage          *aMessage,
  * @retval OT_ERROR_NONE       Successfully retrieved the next entry.
  * @retval OT_ERROR_NOT_FOUND  No more entries in the list.
  * @retval OT_ERROR_PARSE      Failed to parse an entry.
+ *
+ * @Note A subsequent call to this function is only allowed when the current return value is OT_ERROR_NONE.
  */
 otError otMeshMonGetNextAloc(const otMessage *aMessage, otMeshMonAlocIterator *aIterator, uint16_t *aAloc);
 
 /**
  * Starts the Mesh Monitor client.
  *
- * Collects diagnostic TLVs from the Thread network. When @p aDestination is NULL the
- * client registers with all routers via multicast. When @p aDestination is non-NULL,
- * registration and query requests are sent unicast to that specific IPv6 address only.
+ * Requires `OPENTHREAD_CONFIG_MESH_MONITOR_CLIENT_ENABLE`.
+ *
+ * Collects mesh monitoring TLVs from the Thread network. When @p aDestination is NULL the client
+ * registers with all routers across the whole Thread partition. How this is done
+ * depends on the device type:
+ *  - An FTD client has a router table, so it sends a unicast registration request to each known
+ *    router's RLOC.
+ *  - An MTD client has no router table, so it sends a single registration request to the
+ *    realm-local all-routers multicast address.
+ * When @p aDestination is non-NULL, registration and query requests are sent unicast to that
+ * specific IPv6 address only.
+ *
+ * Each of @p aHost, @p aChild and @p aNeighbor may be NULL. A NULL set is treated as an empty set,
+ * meaning no TLVs are requested for that device context type.
  *
  * @param[in] aInstance     A pointer to an OpenThread instance.
- * @param[in] aHost         TLV set for host contexts. May be NULL.
- * @param[in] aChild        TLV set for child contexts. May be NULL.
- * @param[in] aNeighbor     TLV set for neighbor contexts. May be NULL.
- * @param[in] aDestination  Optional unicast destination. NULL means all-routers multicast.
- * @param[in] aCallback     Callback invoked when diagnostic information is received.
+ * @param[in] aHost         TLV set for host contexts. May be NULL (treated as an empty set).
+ * @param[in] aChild        TLV set for child contexts. May be NULL (treated as an empty set).
+ * @param[in] aNeighbor     TLV set for neighbor contexts. May be NULL (treated as an empty set).
+ * @param[in] aDestination  Optional unicast destination. NULL means realm-local all-routers multicast.
+ * @param[in] aCallback     Callback invoked when mesh monitoring information is received.
  * @param[in] aContext      Application-specific context passed to the callback.
+ *
+ * @retval OT_ERROR_NONE          Successfully started the Mesh Monitor client.
+ * @retval OT_ERROR_INVALID_ARGS  @p aCallback is NULL, or @p aDestination is non-NULL but is not a valid
+ *                                unicast address.
  */
-void otMeshMonStartClient(otInstance                   *aInstance,
-                          const otMeshMonTlvSet        *aHost,
-                          const otMeshMonTlvSet        *aChild,
-                          const otMeshMonTlvSet        *aNeighbor,
-                          const otIp6Address           *aDestination,
-                          otMeshMonServerUpdateCallback aCallback,
-                          void                         *aContext);
+otError otMeshMonStartClient(otInstance                   *aInstance,
+                             const otMeshMonTlvSet        *aHost,
+                             const otMeshMonTlvSet        *aChild,
+                             const otMeshMonTlvSet        *aNeighbor,
+                             const otIp6Address           *aDestination,
+                             otMeshMonServerUpdateCallback aCallback,
+                             void                         *aContext);
 
 /**
  * Stops the Mesh Monitor Client and prevents all calls to any previously registered
  * callback.
  *
- * @param[in]  aInstance  The openthread instance.
- *
  * Requires `OPENTHREAD_CONFIG_MESH_MONITOR_CLIENT_ENABLE`.
+ *
+ * @param[in]  aInstance  The openthread instance.
  */
 void otMeshMonStopClient(otInstance *aInstance);
 
