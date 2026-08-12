@@ -63,7 +63,7 @@ private:
     friend class Tmf::Agent;
 
     static constexpr uint16_t kCacheBuffersLimit    = OPENTHREAD_CONFIG_MESH_MONITOR_CACHE_BUFFERS_LIMIT;
-    static constexpr uint32_t kRegistrationInterval = OPENTHREAD_CONFIG_MESH_MONITOR_REGISTRATION_INTERVAL;
+    static constexpr uint32_t kRegistrationInterval = OPENTHREAD_CONFIG_MESH_MONITOR_REGISTRATION_INTERVAL_MAX;
     static constexpr uint32_t kUpdateBaseDelay      = OPENTHREAD_CONFIG_MESH_MONITOR_UPDATE_BASE_DELAY;
     static constexpr uint32_t kUpdateExtDelay       = OPENTHREAD_CONFIG_MESH_MONITOR_UPDATE_EXT_DELAY;
     static constexpr uint32_t kUpdateJitter         = OPENTHREAD_CONFIG_MESH_MONITOR_UPDATE_JITTER;
@@ -477,7 +477,7 @@ class Client : public InstanceLocator, private NonCopyable
 {
     friend class Tmf::Agent;
 
-    static constexpr uint32_t kRegistrationInterval = OPENTHREAD_CONFIG_MESH_MONITOR_REGISTRATION_INTERVAL -
+    static constexpr uint32_t kRegistrationInterval = OPENTHREAD_CONFIG_MESH_MONITOR_REGISTRATION_INTERVAL_MAX -
                                                       (OPENTHREAD_CONFIG_MESH_MONITOR_CLIENT_REGISTRATION_JITTER *
                                                        OPENTHREAD_CONFIG_MESH_MONITOR_CLIENT_REGISTRATION_AHEAD);
     static constexpr uint32_t kRegistrationJitter = OPENTHREAD_CONFIG_MESH_MONITOR_CLIENT_REGISTRATION_JITTER;
