@@ -1102,7 +1102,6 @@ Error Server::ConfigureAsRouter(const TlvSet &aSelf, const TlvSet &aChild, const
         VerifyOrExit(!aSelf.IsEmpty() || !aChild.IsEmpty() || !aNeighbor.IsEmpty(), error = kErrorInvalidArgs);
 
         mSequenceNumber = Random::NonCrypto::Generate<uint32_t>();
-        mSequenceNumber |= static_cast<uint64_t>(Random::NonCrypto::Generate<uint32_t>()) << 32;
 
         mSelfEnabled.Clear();
         mSelfPendingUpdate.Clear();
@@ -3103,7 +3102,7 @@ void Client::ProcessServerUpdate(Coap::Message &aMessage, const Ip6::MessageInfo
     }
     else
     {
-        uint64_t next = mServerSeqNumbers[header.GetRouterId()] + 1;
+        uint32_t next = mServerSeqNumbers[header.GetRouterId()] + 1;
 
         if (header.HasFullSeqNumber())
         {

@@ -384,13 +384,13 @@ void UpdateHeader::SetComplete(bool aComplete)
     }
 }
 
-void UpdateHeader::SetFullSeqNumber(uint64_t aSeqNumber)
+void UpdateHeader::SetFullSeqNumber(uint32_t aSeqNumber)
 {
     mSeqNumber = aSeqNumber;
     mMeta |= kFullSeqFlag;
 }
 
-void UpdateHeader::SetShortSeqNumber(uint64_t aSeqNumber)
+void UpdateHeader::SetShortSeqNumber(uint32_t aSeqNumber)
 {
     mSeqNumber = aSeqNumber;
     mMeta &= ~kFullSeqFlag;
@@ -402,7 +402,7 @@ uint16_t UpdateHeader::GetLength(void) const
 
     if (HasFullSeqNumber())
     {
-        length = sizeof(uint8_t) + sizeof(uint64_t);
+        length = sizeof(uint8_t) + sizeof(uint32_t);
     }
     else
     {
@@ -421,7 +421,7 @@ Error UpdateHeader::ReadFrom(const Message &aMessage, uint16_t aOffset)
     if (HasFullSeqNumber())
     {
         SuccessOrExit(error = aMessage.Read(aOffset + 1, mSeqNumber));
-        mSeqNumber = BigEndian::HostSwap64(mSeqNumber);
+        mSeqNumber = BigEndian::HostSwap32(mSeqNumber);
     }
     else
     {
@@ -440,7 +440,7 @@ void UpdateHeader::WriteTo(Message &aMessage, uint16_t aOffset) const
 
     if (HasFullSeqNumber())
     {
-        uint64_t number = BigEndian::HostSwap64(mSeqNumber);
+        uint32_t number = BigEndian::HostSwap32(mSeqNumber);
         aMessage.Write(aOffset + 1, number);
     }
     else
@@ -458,7 +458,7 @@ Error UpdateHeader::AppendTo(Message &aMessage) const
 
     if (HasFullSeqNumber())
     {
-        uint64_t number = BigEndian::HostSwap64(mSeqNumber);
+        uint32_t number = BigEndian::HostSwap32(mSeqNumber);
         SuccessOrExit(error = aMessage.Append(number));
     }
     else

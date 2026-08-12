@@ -856,7 +856,7 @@ public:
      *
      * @returns The full sequence number.
      */
-    uint64_t GetFullSeqNumber(void) const { return mSeqNumber; }
+    uint32_t GetFullSeqNumber(void) const { return mSeqNumber; }
 
     /**
      * Sets the sequence number and configures the header to contain the full
@@ -864,7 +864,7 @@ public:
      *
      * @param[in]  aSeqNumber  The sequence number.
      */
-    void SetFullSeqNumber(uint64_t aSeqNumber);
+    void SetFullSeqNumber(uint32_t aSeqNumber);
 
     /**
      * Returns the 8 least significant bits of the sequence number.
@@ -879,7 +879,7 @@ public:
      *
      * @param[in]  aSeqNumber  The sequence number.
      */
-    void SetShortSeqNumber(uint64_t aSeqNumber);
+    void SetShortSeqNumber(uint32_t aSeqNumber);
 
     /**
      * Returns the length of the header as currently configured in bytes.
@@ -928,7 +928,7 @@ public:
     Error AppendTo(Message &aMessage) const;
 
 private:
-    uint64_t mSeqNumber;
+    uint32_t mSeqNumber;
     uint8_t  mMeta;
 };
 

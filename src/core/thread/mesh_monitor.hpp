@@ -448,7 +448,7 @@ private:
 
     bool mClientRegistered; ///< True if client sent registration this interval
 
-    uint64_t mSequenceNumber; ///< The current sequence number used by the server
+    uint32_t mSequenceNumber; ///< The current sequence number used by the server
 #endif
 
     TlvSet mSelfDirty; ///< The TLVs of this device which have changed since the last update
@@ -569,7 +569,7 @@ private:
 
     Ip6::Address mDestination;
 
-    uint64_t mServerSeqNumbers[Mle::kMaxRouterId + 1]; ///< The last received sequence number from a server
+    uint32_t mServerSeqNumbers[Mle::kMaxRouterId + 1]; ///< The last received sequence number from a server
 
     UpdateTimer mTimer;
 
