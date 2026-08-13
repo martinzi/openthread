@@ -50,7 +50,7 @@ namespace MeshMonitor {
  */
 
 /**
- * Extended Address TLV (Type 0).
+ * Extended Address TLV
  *
  * Carries the IEEE 802.15.4 Extended Address of a device.
  * Used to uniquely identify devices in diagnostic reports.
@@ -58,7 +58,7 @@ namespace MeshMonitor {
 typedef SimpleTlvInfo<Tlv::kExtAddress, Mac::ExtAddress> ExtAddressTlv;
 
 /**
- * Mode TLV (Type 1).
+ * Mode TLV
  *
  * Carries the Thread device mode byte, indicating device capabilities:
  * - RxOnWhenIdle
@@ -69,7 +69,7 @@ typedef SimpleTlvInfo<Tlv::kExtAddress, Mac::ExtAddress> ExtAddressTlv;
 typedef UintTlvInfo<Tlv::kMode, uint8_t> ModeTlv;
 
 /**
- * Timeout TLV (Type 2).
+ * Timeout TLV
  *
  * For children: Child timeout value in seconds (time until parent considers child detached).
  * For routers: Not applicable.
@@ -77,7 +77,7 @@ typedef UintTlvInfo<Tlv::kMode, uint8_t> ModeTlv;
 typedef UintTlvInfo<Tlv::kTimeout, uint32_t> TimeoutTlv;
 
 /**
- * Last Heard TLV (Type 3).
+ * Last Heard TLV
  *
  * Time in milliseconds since the last frame was received from this device.
  * Used to track communication freshness for children and neighbors.
@@ -85,7 +85,7 @@ typedef UintTlvInfo<Tlv::kTimeout, uint32_t> TimeoutTlv;
 typedef UintTlvInfo<Tlv::kLastHeard, uint32_t> LastHeardTlv;
 
 /**
- * Connection Time TLV (Type 4).
+ * Connection Time TLV
  *
  * Duration in seconds that the device has been connected as a child or neighbor.
  * Resets to zero when the relationship is re-established.
@@ -93,12 +93,14 @@ typedef UintTlvInfo<Tlv::kLastHeard, uint32_t> LastHeardTlv;
 typedef UintTlvInfo<Tlv::kConnectionTime, uint32_t> ConnectionTimeTlv;
 
 /**
- * CSL (Coordinated Sampled Listening) TLV (Type 5).
+ * CSL (Coordinated Sampled Listening) TLV
  *
  * Carries CSL parameters for Sleepy End Devices (SEDs):
  * - Timeout: CSL timeout in seconds (time until CSL becomes inactive)
  * - Period: CSL sample period in units of 10 symbols (0 = CSL not synchronized)
- * - Channel: CSL channel number
+ * - Channel: CSL channel number (0 = no dedicated CSL channel configured, i.e. the
+ *   device uses the same channel as the Thread network). Same semantics as the MLE
+ *   CSL Channel TLV.
  *
  * CSL allows SEDs to sleep most of the time while coordinating wake times with the parent.
  */
@@ -106,6 +108,12 @@ OT_TOOL_PACKED_BEGIN
 class CslTlv : public Tlv, public TlvInfo<Tlv::kCsl>
 {
 public:
+    /**
+     * Channel value indicating that no dedicated CSL channel is configured and that the device
+     * uses the same channel as the Thread network.
+     */
+    static constexpr uint8_t kUnspecifiedChannel = 0;
+
     /**
      * Initializes the CSL TLV with default values (all zeros).
      */
@@ -115,7 +123,7 @@ public:
         SetLength(sizeof(*this) - sizeof(Tlv));
         mTimeout = 0;
         mPeriod  = 0;
-        mChannel = 0;
+        mChannel = kUnspecifiedChannel;
     }
 
     /**
@@ -157,14 +165,16 @@ public:
     /**
      * Gets the CSL channel number.
      *
-     * @returns The CSL channel number.
+     * @returns The CSL channel number, or `kUnspecifiedChannel` if no dedicated CSL channel is
+     *          configured (the Thread network channel is then used).
      */
     uint8_t GetChannel(void) const { return mChannel; }
 
     /**
      * Sets the CSL channel number.
      *
-     * @param[in] aChannel  The CSL channel number.
+     * @param[in] aChannel  The CSL channel number, or `kUnspecifiedChannel` if no dedicated CSL
+     *                      channel is configured.
      */
     void SetChannel(uint8_t aChannel) { mChannel = aChannel; }
 
@@ -175,7 +185,7 @@ private:
 } OT_TOOL_PACKED_END;
 
 /**
- * Route64 TLV (Type 6).
+ * Route64 TLV
  *
  * Carries the Router ID Sequence and Router ID Mask for the Thread network.
  * Uses RouterTable::AppendRouteTlv() for appending and static parse helpers for reading.
@@ -191,8 +201,13 @@ public:
 /**
  * Represents the value fields for Link Margin TLVs.
  *
- * Link margin represents the difference between received signal strength and
- * the minimum required signal strength for successful reception.
+ * Shared value base class for `LinkMarginInTlv` and `LinkMarginOutTlv`. It carries the value
+ * fields only and is not a TLV by itself (it has no Type and Length).
+ *
+ * Link margin is the difference between the received signal strength and the minimum signal
+ * strength required for successful reception. It can only be observed on frames a device receives,
+ * so the measuring device is always the receiving end of the reported link direction.
+ *
  * Includes both instantaneous (last RSSI) and averaged metrics.
  */
 OT_TOOL_PACKED_BEGIN
@@ -200,44 +215,61 @@ class LinkMarginTlvValue
 {
 public:
     /**
-     * Gets the link margin value.
+     * Maximum value that can be reported as an average link margin in dB.
      *
-     * @returns The link margin in dB (0-130, where 130 = unused/unknown).
+     * Values above this and below `kUnknownLinkMargin` are reserved for future special semantics.
+     */
+    static constexpr uint8_t kMaxLinkMargin = OT_MESH_MON_LINK_MARGIN_MAX;
+
+    /**
+     * Special value indicating that the average link margin is unknown or unavailable.
+     */
+    static constexpr uint8_t kUnknownLinkMargin = OT_MESH_MON_LINK_MARGIN_UNKNOWN;
+
+    /**
+     * Special value indicating that an RSSI value is unknown or unavailable.
+     */
+    static constexpr int8_t kUnknownRssi = OT_MESH_MON_RSSI_UNKNOWN;
+
+    /**
+     * Gets the average link margin value.
+     *
+     * @returns The average link margin in dB (0 - `kMaxLinkMargin`), or `kUnknownLinkMargin` if unknown.
      */
     uint8_t GetLinkMargin(void) const { return mLinkMargin; }
 
     /**
-     * Sets the link margin value.
+     * Sets the average link margin value.
      *
-     * @param[in] aLinkMargin  The link margin in dB.
+     * @param[in] aLinkMargin  The average link margin in dB (0 - `kMaxLinkMargin`), or `kUnknownLinkMargin`.
      */
     void SetLinkMargin(uint8_t aLinkMargin) { mLinkMargin = aLinkMargin; }
 
     /**
      * Gets the average RSSI value.
      *
-     * @returns The average RSSI in dBm.
+     * @returns The average RSSI in dBm, or `kUnknownRssi` if unknown.
      */
     int8_t GetAverageRssi(void) const { return mAverageRssi; }
 
     /**
      * Sets the average RSSI value.
      *
-     * @param[in] aRssi  The average RSSI in dBm.
+     * @param[in] aRssi  The average RSSI in dBm, or `kUnknownRssi` if unknown.
      */
     void SetAverageRssi(int8_t aRssi) { mAverageRssi = aRssi; }
 
     /**
      * Gets the last RSSI value.
      *
-     * @returns The last RSSI in dBm.
+     * @returns The last RSSI in dBm, or `kUnknownRssi` if unknown.
      */
     int8_t GetLastRssi(void) const { return mLastRssi; }
 
     /**
      * Sets the last RSSI value.
      *
-     * @param[in] aRssi  The last RSSI in dBm.
+     * @param[in] aRssi  The last RSSI in dBm, or `kUnknownRssi` if unknown.
      */
     void SetLastRssi(int8_t aRssi) { mLastRssi = aRssi; }
 
@@ -248,11 +280,14 @@ private:
 } OT_TOOL_PACKED_END;
 
 /**
- * Link Margin In TLV (Type 7).
+ * Link Margin In TLV
  *
- * Carries inbound link quality metrics from the perspective of the reporting device.
- * "In" refers to frames received by this device from a child or neighbor.
- * Includes link margin, average RSSI, and last RSSI.
+ * Reports the link margin of the inbound link: the frames the reporting Router receives from the
+ * child or neighbor described by the context. Measured by the Router itself.
+ *
+ * Includes average link margin, average RSSI, and last RSSI.
+ *
+ * See `LinkMarginOutTlv` for the opposite link direction.
  */
 OT_TOOL_PACKED_BEGIN
 class LinkMarginInTlv : public Tlv, public TlvInfo<Tlv::kLinkMarginIn>, public LinkMarginTlvValue
@@ -271,9 +306,16 @@ public:
 /**
  * Represents the value fields for MAC Link Error Rates TLVs.
  *
+ * Shared value base class for `MacLinkErrorRatesTxTlv` and `MacLinkErrorRatesRxTlv`. It carries
+ * the value fields only and is not a TLV by itself (it has no Type and Length).
+ *
  * Error rates are expressed as fixed-point values where 0xFFFF = 100%.
- * - Message error rate: Percentage of MAC-level messages that failed delivery
+ * - Message error rate: Percentage of IPv6 messages that failed delivery
  * - Frame error rate: Percentage of MAC frames that failed (includes retries)
+ *
+ * Both rates are derived from missing acknowledgments, so they can only be observed on frames a
+ * device transmits. The measuring device is therefore always the sending end of the reported link
+ * direction.
  */
 OT_TOOL_PACKED_BEGIN
 class MacLinkErrorRatesTlvValue
@@ -284,40 +326,43 @@ public:
      *
      * @returns The message error rate (0x0000-0xFFFF, where 0xFFFF = 100%).
      */
-    uint16_t GetMessageErrorRates(void) const { return mMessageErrorRates; }
+    uint16_t GetMessageErrorRate(void) const { return mMessageErrorRate; }
 
     /**
      * Sets the message error rate.
      *
-     * @param[in] aMessageErrorRates  The message error rate.
+     * @param[in] aMessageErrorRate  The message error rate.
      */
-    void SetMessageErrorRates(uint16_t aMessageErrorRates) { mMessageErrorRates = aMessageErrorRates; }
+    void SetMessageErrorRate(uint16_t aMessageErrorRate) { mMessageErrorRate = aMessageErrorRate; }
 
     /**
      * Gets the frame error rate.
      *
      * @returns The frame error rate (0x0000-0xFFFF, where 0xFFFF = 100%).
      */
-    uint16_t GetFrameErrorRates(void) const { return mFrameErrorRates; }
+    uint16_t GetFrameErrorRate(void) const { return mFrameErrorRate; }
 
     /**
      * Sets the frame error rate.
      *
-     * @param[in] aFrameErrorRates  The frame error rate.
+     * @param[in] aFrameErrorRate  The frame error rate.
      */
-    void SetFrameErrorRates(uint16_t aFrameErrorRates) { mFrameErrorRates = aFrameErrorRates; }
+    void SetFrameErrorRate(uint16_t aFrameErrorRate) { mFrameErrorRate = aFrameErrorRate; }
 
 private:
-    uint16_t mMessageErrorRates;
-    uint16_t mFrameErrorRates;
+    uint16_t mMessageErrorRate;
+    uint16_t mFrameErrorRate;
 } OT_TOOL_PACKED_END;
 
 /**
- * MAC Link Error Rates Tx TLV (Type 8).
+ * MAC Link Error Rates Tx TLV
  *
- * Carries Tx-direction MAC layer error rates for child or neighbor contexts.
- * "Tx" refers to frames transmitted by this device to the child/neighbor.
+ * Reports the error rates of the outbound link: the frames the reporting Router transmits to the
+ * child or neighbor described by the context. Measured by the Router itself.
+ *
  * Includes message error rate and frame error rate.
+ *
+ * See `MacLinkErrorRatesRxTlv` for the opposite link direction.
  */
 OT_TOOL_PACKED_BEGIN
 class MacLinkErrorRatesTxTlv : public Tlv, public TlvInfo<Tlv::kMacLinkErrorRatesTx>, public MacLinkErrorRatesTlvValue
@@ -334,16 +379,15 @@ public:
 } OT_TOOL_PACKED_END;
 
 /**
- * ML-EID (Mesh-Local Endpoint Identifier) TLV (Type 9).
+ * ML-EID (Mesh-Local Endpoint Identifier) TLV
  *
  * Carries the Interface Identifier (IID) portion of a device's Mesh-Local EID.
  * The full ML-EID is formed by combining the mesh-local prefix with this IID.
- * Used for FTD children to report their stable mesh-local identifier.
  */
 typedef SimpleTlvInfo<Tlv::kMlEid, Ip6::InterfaceIdentifier> MlEidTlv;
 
 /**
- * IPv6 Address List TLV (Type 10).
+ * IPv6 Address List TLV
  *
  * Carries a list of IPv6 addresses assigned to a device.
  * Excludes mesh-local, link-local, anycast locator addresses (reported separately).
@@ -352,7 +396,7 @@ typedef SimpleTlvInfo<Tlv::kMlEid, Ip6::InterfaceIdentifier> MlEidTlv;
 typedef TlvInfo<Tlv::kIp6AddressList> Ip6AddressListTlv;
 
 /**
- * ALOC16 (Anycast Locator) List TLV (Type 11).
+ * ALOC16 (Anycast Locator) List TLV
  *
  * Carries a list of ALOC16 (Anycast Locator) RLOC16 values associated with the
  * device. Each entry on the wire is a single byte containing the locator portion
@@ -361,15 +405,20 @@ typedef TlvInfo<Tlv::kIp6AddressList> Ip6AddressListTlv;
 typedef TlvInfo<Tlv::kAlocList> AlocListTlv;
 
 /**
- * Thread Spec Version TLV (Type 12).
+ * Thread Version TLV
  *
- * Carries the Thread specification version supported by the device.
- * Encoded as a 16-bit value (e.g., 4 for Thread 1.4).
+ * Carries the Thread version supported by the device. Same format and semantics as the MLE Version
+ * TLV (MLE TLV Type 18): a 16-bit value using the version numbering of the Thread specification
+ * (for example `5` for Thread 1.4, see `OT_THREAD_VERSION_1_4`).
+ *
+ * A single version number may cover more than one specification revision (for example `5` covers
+ * both Thread 1.4.0 and 1.4.1), so it identifies a Thread version rather than one specific
+ * specification document.
  */
-typedef UintTlvInfo<Tlv::kThreadSpecVersion, uint16_t> ThreadSpecVersionTlv;
+typedef UintTlvInfo<Tlv::kThreadVersion, uint16_t> ThreadVersionTlv;
 
 /**
- * Thread Stack Version TLV (Type 13).
+ * Thread Stack Version TLV
  *
  * Carries a human-readable string identifying the Thread stack implementation and version.
  * Maximum length defined by kMaxThreadStackTlvLength.
@@ -377,7 +426,7 @@ typedef UintTlvInfo<Tlv::kThreadSpecVersion, uint16_t> ThreadSpecVersionTlv;
 typedef StringTlvInfo<Tlv::kThreadStackVersion, Tlv::kMaxThreadStackTlvLength> ThreadStackVersionTlv;
 
 /**
- * Vendor Name TLV (Type 14).
+ * Vendor Name TLV
  *
  * Carries a human-readable vendor/manufacturer name string.
  * Maximum length defined by kMaxVendorNameTlvLength.
@@ -385,7 +434,7 @@ typedef StringTlvInfo<Tlv::kThreadStackVersion, Tlv::kMaxThreadStackTlvLength> T
 typedef StringTlvInfo<Tlv::kVendorName, Tlv::kMaxVendorNameTlvLength> VendorNameTlv;
 
 /**
- * Vendor Model TLV (Type 15).
+ * Vendor Model TLV
  *
  * Carries a human-readable product model identifier string.
  * Maximum length defined by kMaxVendorModelTlvLength.
@@ -393,7 +442,7 @@ typedef StringTlvInfo<Tlv::kVendorName, Tlv::kMaxVendorNameTlvLength> VendorName
 typedef StringTlvInfo<Tlv::kVendorModel, Tlv::kMaxVendorModelTlvLength> VendorModelTlv;
 
 /**
- * Vendor Software Version TLV (Type 16).
+ * Vendor Software Version TLV
  *
  * Carries a human-readable firmware/software version string.
  * Maximum length defined by kMaxVendorSwVersionTlvLength.
@@ -401,7 +450,7 @@ typedef StringTlvInfo<Tlv::kVendorModel, Tlv::kMaxVendorModelTlvLength> VendorMo
 typedef StringTlvInfo<Tlv::kVendorSwVersion, Tlv::kMaxVendorSwVersionTlvLength> VendorSwVersionTlv;
 
 /**
- * Vendor App URL TLV (Type 17).
+ * Vendor App URL TLV
  *
  * Carries a URL string pointing to vendor application or product information.
  * Maximum length defined by kMaxVendorAppUrlTlvLength.
@@ -409,25 +458,23 @@ typedef StringTlvInfo<Tlv::kVendorSwVersion, Tlv::kMaxVendorSwVersionTlvLength> 
 typedef StringTlvInfo<Tlv::kVendorAppUrl, Tlv::kMaxVendorAppUrlTlvLength> VendorAppUrlTlv;
 
 /**
- * IPv6 Link-Local Address List TLV (Type 18).
+ * IPv6 Link-Local Address List TLV
  *
- * Carries a list of link-local IPv6 addresses assigned to a device.
+ * Carries a list of link-local IPv6 addresses (unicast and multicast) registered by a device.
  * Excludes well-known link-local multicast addresses (all-nodes, all-routers).
  * Variable length TLV containing concatenated 16-byte IPv6 addresses.
  */
 typedef TlvInfo<Tlv::kIp6LinkLocalAddressList> Ip6LinkLocalAddressListTlv;
 
 /**
- * EUI-64 TLV (Type 19).
+ * EUI-64 TLV
  *
  * Carries the IEEE EUI-64 identifier of a device.
- * This is a child-provided TLV reported by end devices to their parent router.
- * May differ from the MAC Extended Address (Type 0) on some platforms.
  */
 typedef SimpleTlvInfo<Tlv::kEui64, Mac::ExtAddress> Eui64Tlv;
 
 /**
- * MAC Counters TLV (Type 20).
+ * MAC Counters TLV
  *
  * Carries MAC layer statistics counters including:
  * - TxTotal, TxUnicast, TxBroadcast, TxAckRequested, TxAcked
@@ -436,17 +483,22 @@ typedef SimpleTlvInfo<Tlv::kEui64, Mac::ExtAddress> Eui64Tlv;
  * - RxBeacon, RxBeaconRequest, RxOther, RxAddressFiltered, RxDestAddrFiltered
  * - TxErrCca, TxErrAbort, TxErrBusyChannel
  *
- * Extends NetDiag::MacCountersTlv with mesh monitor server TLV type.
+ * Reuses the `NetDiag::MacCountersTlvValue` value format unchanged, under the Mesh Monitor TLV
+ * type `Tlv::kMacCounters`. Only the TLV type differs; the value fields and length are identical.
  */
 typedef SimpleTlvInfo<Tlv::kMacCounters, NetDiag::MacCountersTlvValue> MacCountersTlv;
 
 /**
- * MAC Link Error Rates Rx TLV (Type 21).
+ * MAC Link Error Rates Rx TLV
  *
- * Carries Rx-direction MAC layer error rates from the perspective of the
- * reporting device for child or neighbor contexts.
- * "Rx" refers to frames received from the peer neighbor.
+ * Reports the error rates of the inbound link: the frames the reporting Router receives from the
+ * child described by the context. Because an error rate can only be observed by the transmitter,
+ * this value is measured by the child (on its own transmissions to its parent) and reported to the
+ * parent, which includes it in the child context.
+ *
  * Includes message error rate and frame error rate.
+ *
+ * See `MacLinkErrorRatesTxTlv` for the opposite link direction.
  */
 OT_TOOL_PACKED_BEGIN
 class MacLinkErrorRatesRxTlv : public Tlv, public TlvInfo<Tlv::kMacLinkErrorRatesRx>, public MacLinkErrorRatesTlvValue
@@ -463,7 +515,7 @@ public:
 } OT_TOOL_PACKED_END;
 
 /**
- * MLE Counters TLV (Type 22).
+ * MLE Counters TLV
  *
  * Carries MLE (Mesh Link Establishment) layer statistics counters including:
  * - DisabledRole, DetachedRole, ChildRole, RouterRole, LeaderRole
@@ -474,12 +526,16 @@ public:
 typedef SimpleTlvInfo<Tlv::kMleCounters, NetDiag::MleCountersTlvValue> MleCountersTlv;
 
 /**
- * Link Margin Out TLV (Type 23).
+ * Link Margin Out TLV
  *
- * Carries outbound link quality metrics from the perspective of the reporting
- * device in child or neighbor contexts.
- * "Out" refers to frames transmitted by this device to the peer.
- * Includes link margin, average RSSI, and last RSSI.
+ * Reports the link margin of the outbound link: the frames the reporting Router transmits to the
+ * child described by the context. Because a link margin can only be observed by the receiver, this
+ * value is measured by the child (on the frames it receives from its parent) and reported to the
+ * parent, which includes it in the child context.
+ *
+ * Includes average link margin, average RSSI, and last RSSI.
+ *
+ * See `LinkMarginInTlv` for the opposite link direction.
  */
 OT_TOOL_PACKED_BEGIN
 class LinkMarginOutTlv : public Tlv, public TlvInfo<Tlv::kLinkMarginOut>, public LinkMarginTlvValue

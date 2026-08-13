@@ -104,7 +104,7 @@ private:
     bool ValidateConnectionTime(Node &aNode, otMeshMonTlv &aTlv);
     bool ValidateCsl(Node &aNode, otMeshMonTlv &aTlv);
     bool ValidateMlEid(Node &aNode, otMeshMonTlv &aTlv);
-    bool ValidateThreadSpecVersion(Node &aNode, otMeshMonTlv &aTlv);
+    bool ValidateThreadVersion(Node &aNode, otMeshMonTlv &aTlv);
     bool ValidateVendorName(Node &aNode, otMeshMonTlv &aTlv);
     bool ValidateVendorModel(Node &aNode, otMeshMonTlv &aTlv);
     bool ValidateVendorSwVersion(Node &aNode, otMeshMonTlv &aTlv);
@@ -174,8 +174,8 @@ bool DiagnosticValidator::ValidateRouter(Node &aNode)
             Log("Missing TLV: kIp6AddressList");
         if (missingTlvs.IsSet(MeshMonitor::Tlv::kAlocList))
             Log("Missing TLV: kAlocList");
-        if (missingTlvs.IsSet(MeshMonitor::Tlv::kThreadSpecVersion))
-            Log("Missing TLV: kThreadSpecVersion");
+        if (missingTlvs.IsSet(MeshMonitor::Tlv::kThreadVersion))
+            Log("Missing TLV: kThreadVersion");
         if (missingTlvs.IsSet(MeshMonitor::Tlv::kThreadStackVersion))
             Log("Missing TLV: kThreadStackVersion");
         if (missingTlvs.IsSet(MeshMonitor::Tlv::kVendorName))
@@ -246,8 +246,8 @@ bool DiagnosticValidator::ValidateChild(Node &aNode)
             Log("Missing TLV: kIp6AddressList");
         if (missingTlvs.IsSet(MeshMonitor::Tlv::kAlocList))
             Log("Missing TLV: kAlocList");
-        if (missingTlvs.IsSet(MeshMonitor::Tlv::kThreadSpecVersion))
-            Log("Missing TLV: kThreadSpecVersion");
+        if (missingTlvs.IsSet(MeshMonitor::Tlv::kThreadVersion))
+            Log("Missing TLV: kThreadVersion");
         if (missingTlvs.IsSet(MeshMonitor::Tlv::kThreadStackVersion))
             Log("Missing TLV: kThreadStackVersion");
         if (missingTlvs.IsSet(MeshMonitor::Tlv::kVendorName))
@@ -535,8 +535,8 @@ bool DiagnosticValidator::ValidateTlvValue(Node &aNode, EntryType &aEntry, MeshM
     case MeshMonitor::Tlv::kMlEid:
         return ValidateMlEid(aNode, tlv);
 
-    case MeshMonitor::Tlv::kThreadSpecVersion:
-        return ValidateThreadSpecVersion(aNode, tlv);
+    case MeshMonitor::Tlv::kThreadVersion:
+        return ValidateThreadVersion(aNode, tlv);
 
     case MeshMonitor::Tlv::kVendorName:
         return ValidateVendorName(aNode, tlv);
@@ -760,10 +760,10 @@ bool DiagnosticValidator::ValidateMlEid(Node &aNode, otMeshMonTlv &aTlv)
     return true;
 }
 
-bool DiagnosticValidator::ValidateThreadSpecVersion(Node &aNode, otMeshMonTlv &aTlv)
+bool DiagnosticValidator::ValidateThreadVersion(Node &aNode, otMeshMonTlv &aTlv)
 {
     OT_UNUSED_VARIABLE(aNode);
-    uint16_t version = aTlv.mData.mThreadSpecVersion;
+    uint16_t version = aTlv.mData.mThreadVersion;
 
     // Thread Specification Table 4-2 defines ONLY 2 entries:
     // Value 2 = Thread 1.1.x / 1.2.x
@@ -771,18 +771,18 @@ bool DiagnosticValidator::ValidateThreadSpecVersion(Node &aNode, otMeshMonTlv &a
 
     if (version == 2)
     {
-        Log("SUCCESS: ThreadSpecVersion Value: %u - Thread 1.1.x/1.2.x - VALID", version);
+        Log("SUCCESS: ThreadVersion Value: %u - Thread 1.1.x/1.2.x - VALID", version);
         return true;
     }
     else if (version >= 3)
     {
-        Log("SUCCESS: ThreadSpecVersion Value: %u - Thread 1.3.x+ - VALID", version);
+        Log("SUCCESS: ThreadVersion Value: %u - Thread 1.3.x+ - VALID", version);
         return true;
     }
     else
     {
         // Version 0, 1 - NOT in the spec table
-        Log("ERROR: ThreadSpecVersion Value: %u - NOT DEFINED - INVALID", version);
+        Log("ERROR: ThreadVersion Value: %u - NOT DEFINED - INVALID", version);
         return false;
     }
 }
@@ -1343,13 +1343,13 @@ void TestDiagnosticServerAllAvailableTlvs(void)
     Log("  - 1 client router (diag client)");
     Log("---------------------------------------------------------------------------------------");
     Log("The test requests the following TLVs:");
-    Log("- Host TLVs: kExtAddress, kMode, kMlEid, kIp6AddressList, kAlocList, kThreadSpecVersion,");
+    Log("- Host TLVs: kExtAddress, kMode, kMlEid, kIp6AddressList, kAlocList, kThreadVersion,");
     Log("             kThreadStackVersion, kVendorName, kVendorModel, kVendorAppUrl,");
     Log("             kIp6LinkLocalAddressList, kMleCounters");
     Log("- Child TLVs: kExtAddress, kMode, kTimeout, kLastHeard, kConnectionTime, kCsl, kMlEid,");
-    Log("              kIp6AddressList, kAlocList, kThreadSpecVersion, kThreadStackVersion,");
+    Log("              kIp6AddressList, kAlocList, kThreadVersion, kThreadStackVersion,");
     Log("              kVendorName, kVendorModel, kVendorAppUrl, kIp6LinkLocalAddressList, kMleCounters");
-    Log("- Neighbor TLVs: kExtAddress, kLastHeard, kConnectionTime, kThreadSpecVersion");
+    Log("- Neighbor TLVs: kExtAddress, kLastHeard, kConnectionTime, kThreadVersion");
     Log("Summary of tested TLV Ids: 0, 1, 2, 3, 4, 5, 9, 10, 11, 12, 13, 14, 15, 17, 18, 22");
     Log("Purpose: Tests comprehensive TLV set excluding only unavailable/redundant TLVs");
     Log("========================================================================================");
@@ -1368,7 +1368,7 @@ void TestDiagnosticServerAllAvailableTlvs(void)
     hostSet.Set(MeshMonitor::Tlv::kMlEid);
     hostSet.Set(MeshMonitor::Tlv::kIp6AddressList);
     hostSet.Set(MeshMonitor::Tlv::kAlocList);
-    hostSet.Set(MeshMonitor::Tlv::kThreadSpecVersion);
+    hostSet.Set(MeshMonitor::Tlv::kThreadVersion);
     hostSet.Set(MeshMonitor::Tlv::kThreadStackVersion);
     hostSet.Set(MeshMonitor::Tlv::kVendorName);
     hostSet.Set(MeshMonitor::Tlv::kVendorModel);
@@ -1387,7 +1387,7 @@ void TestDiagnosticServerAllAvailableTlvs(void)
     childSet.Set(MeshMonitor::Tlv::kMlEid);
     childSet.Set(MeshMonitor::Tlv::kIp6AddressList);
     childSet.Set(MeshMonitor::Tlv::kAlocList);
-    childSet.Set(MeshMonitor::Tlv::kThreadSpecVersion);
+    childSet.Set(MeshMonitor::Tlv::kThreadVersion);
     childSet.Set(MeshMonitor::Tlv::kThreadStackVersion);
     childSet.Set(MeshMonitor::Tlv::kVendorName);
     childSet.Set(MeshMonitor::Tlv::kVendorModel);
@@ -1400,7 +1400,7 @@ void TestDiagnosticServerAllAvailableTlvs(void)
     neighborSet.Set(MeshMonitor::Tlv::kExtAddress);
     neighborSet.Set(MeshMonitor::Tlv::kLastHeard);
     neighborSet.Set(MeshMonitor::Tlv::kConnectionTime);
-    neighborSet.Set(MeshMonitor::Tlv::kThreadSpecVersion);
+    neighborSet.Set(MeshMonitor::Tlv::kThreadVersion);
 
     nexus.AdvanceTime(0);
 
@@ -1467,9 +1467,9 @@ void TestDiagnosticServerCoreTlvs(void)
     Log("---------------------------------------------------------------------------------------");
     Log("The test validates multiple core TLV combinations:");
     Log("Test Case 1: Basic Identification TLVs");
-    Log("  - Host: kExtAddress, kMode, kThreadSpecVersion");
+    Log("  - Host: kExtAddress, kMode, kThreadVersion");
     Log("  - Child: kExtAddress, kMode, kTimeout");
-    Log("  - Neighbor: kExtAddress, kThreadSpecVersion");
+    Log("  - Neighbor: kExtAddress, kThreadVersion");
     Log("Test Case 2: Link Quality TLVs");
     Log("  - Child: kLastHeard, kConnectionTime");
     Log("  - Neighbor: kLastHeard, kConnectionTime");
@@ -1508,7 +1508,7 @@ void TestDiagnosticServerCoreTlvs(void)
     hostSet.Clear();
     hostSet.Set(MeshMonitor::Tlv::kExtAddress);
     hostSet.Set(MeshMonitor::Tlv::kMode);
-    hostSet.Set(MeshMonitor::Tlv::kThreadSpecVersion);
+    hostSet.Set(MeshMonitor::Tlv::kThreadVersion);
 
     childSet.Clear();
     childSet.Set(MeshMonitor::Tlv::kExtAddress);
@@ -1517,7 +1517,7 @@ void TestDiagnosticServerCoreTlvs(void)
 
     neighborSet.Clear();
     neighborSet.Set(MeshMonitor::Tlv::kExtAddress);
-    neighborSet.Set(MeshMonitor::Tlv::kThreadSpecVersion);
+    neighborSet.Set(MeshMonitor::Tlv::kThreadVersion);
 
     validator->Start(hostSet, childSet, neighborSet);
     nexus.AdvanceTime(50 * 1000);
@@ -1660,7 +1660,7 @@ void TestDiagnosticServerComprehensiveStress(void)
     hostSet.Set(MeshMonitor::Tlv::kMlEid);
     hostSet.Set(MeshMonitor::Tlv::kIp6AddressList);
     hostSet.Set(MeshMonitor::Tlv::kAlocList);
-    hostSet.Set(MeshMonitor::Tlv::kThreadSpecVersion);
+    hostSet.Set(MeshMonitor::Tlv::kThreadVersion);
     hostSet.Set(MeshMonitor::Tlv::kThreadStackVersion);
     hostSet.Set(MeshMonitor::Tlv::kVendorName);
     hostSet.Set(MeshMonitor::Tlv::kVendorModel);
@@ -1679,7 +1679,7 @@ void TestDiagnosticServerComprehensiveStress(void)
     childSet.Set(MeshMonitor::Tlv::kMlEid);
     childSet.Set(MeshMonitor::Tlv::kIp6AddressList);
     childSet.Set(MeshMonitor::Tlv::kAlocList);
-    childSet.Set(MeshMonitor::Tlv::kThreadSpecVersion);
+    childSet.Set(MeshMonitor::Tlv::kThreadVersion);
     childSet.Set(MeshMonitor::Tlv::kThreadStackVersion);
     childSet.Set(MeshMonitor::Tlv::kVendorName);
     childSet.Set(MeshMonitor::Tlv::kVendorModel);
@@ -1692,7 +1692,7 @@ void TestDiagnosticServerComprehensiveStress(void)
     neighborSet.Set(MeshMonitor::Tlv::kExtAddress);
     neighborSet.Set(MeshMonitor::Tlv::kLastHeard);
     neighborSet.Set(MeshMonitor::Tlv::kConnectionTime);
-    neighborSet.Set(MeshMonitor::Tlv::kThreadSpecVersion);
+    neighborSet.Set(MeshMonitor::Tlv::kThreadVersion);
 
     nexus.AdvanceTime(0);
 
@@ -1705,14 +1705,14 @@ void TestDiagnosticServerComprehensiveStress(void)
     Log("  - 1 client router (diag client)");
     Log("---------------------------------------------------------------------------------------");
     Log("The test requests the following TLVs:");
-    Log("- Host TLVs: kExtAddress, kMode, kMlEid, kIp6AddressList, kAlocList, kThreadSpecVersion,");
+    Log("- Host TLVs: kExtAddress, kMode, kMlEid, kIp6AddressList, kAlocList, kThreadVersion,");
     Log("             kThreadStackVersion, kVendorName, kVendorModel, kVendorSwVersion, kVendorAppUrl,");
     Log("             kIp6LinkLocalAddressList, kMleCounters");
     Log("- Child TLVs: kExtAddress, kMode, kTimeout, kLastHeard, kConnectionTime, kCsl, kMlEid,");
-    Log("              kIp6AddressList, kAlocList, kThreadSpecVersion, kThreadStackVersion,");
+    Log("              kIp6AddressList, kAlocList, kThreadVersion, kThreadStackVersion,");
     Log("              kVendorName, kVendorModel, kVendorSwVersion, kVendorAppUrl,");
     Log("              kIp6LinkLocalAddressList, kEui64, kMleCounters");
-    Log("- Neighbor TLVs: kExtAddress, kLastHeard, kConnectionTime, kThreadSpecVersion");
+    Log("- Neighbor TLVs: kExtAddress, kLastHeard, kConnectionTime, kThreadVersion");
     Log("Summary of tested TLV Ids: 0, 1, 2, 3, 4, 5, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 22");
     Log("Stress parameters: %u iterations, %u children per iteration", static_cast<unsigned>(kStressIterations),
         static_cast<unsigned>(kNumChildren));
@@ -1858,7 +1858,7 @@ void TestDiagnosticServerMultiRouterWithFtdChildren(void)
     hostSet.Set(MeshMonitor::Tlv::kMlEid);
     hostSet.Set(MeshMonitor::Tlv::kIp6AddressList);
     hostSet.Set(MeshMonitor::Tlv::kAlocList);
-    hostSet.Set(MeshMonitor::Tlv::kThreadSpecVersion);
+    hostSet.Set(MeshMonitor::Tlv::kThreadVersion);
     hostSet.Set(MeshMonitor::Tlv::kThreadStackVersion);
     hostSet.Set(MeshMonitor::Tlv::kVendorName);
     hostSet.Set(MeshMonitor::Tlv::kVendorModel);
@@ -1882,7 +1882,7 @@ void TestDiagnosticServerMultiRouterWithFtdChildren(void)
     childSet.Set(MeshMonitor::Tlv::kIp6AddressList);
     childSet.Set(MeshMonitor::Tlv::kAlocList);
     childSet.Set(MeshMonitor::Tlv::kMacLinkErrorRatesTx);
-    childSet.Set(MeshMonitor::Tlv::kThreadSpecVersion);
+    childSet.Set(MeshMonitor::Tlv::kThreadVersion);
     childSet.Set(MeshMonitor::Tlv::kThreadStackVersion);
     childSet.Set(MeshMonitor::Tlv::kVendorName);
     childSet.Set(MeshMonitor::Tlv::kVendorModel);
@@ -1902,7 +1902,7 @@ void TestDiagnosticServerMultiRouterWithFtdChildren(void)
     neighborSet.Set(MeshMonitor::Tlv::kConnectionTime);
     neighborSet.Set(MeshMonitor::Tlv::kLinkMarginIn);
     neighborSet.Set(MeshMonitor::Tlv::kMacLinkErrorRatesTx);
-    neighborSet.Set(MeshMonitor::Tlv::kThreadSpecVersion);
+    neighborSet.Set(MeshMonitor::Tlv::kThreadVersion);
 
     nexus.AdvanceTime(0);
 
@@ -1917,7 +1917,7 @@ void TestDiagnosticServerMultiRouterWithFtdChildren(void)
     Log("  - %u FTD children attached to additional router 0", static_cast<unsigned>(kNumFtdChildren));
     Log("---------------------------------------------------------------------------------------");
     Log("The test requests the following TLVs:");
-    Log("- Host TLVs: kExtAddress, kMode, kRoute64, kMlEid, kIp6AddressList, kAlocList, kThreadSpecVersion, "
+    Log("- Host TLVs: kExtAddress, kMode, kRoute64, kMlEid, kIp6AddressList, kAlocList, kThreadVersion, "
         "kThreadStackVersion, "
         "kVendorName,");
     Log("             kVendorModel, kVendorSwVersion, kVendorAppUrl, kIp6LinkLocalAddressList, kMleCounters, kEui64, "
@@ -1925,11 +1925,11 @@ void TestDiagnosticServerMultiRouterWithFtdChildren(void)
     Log("- Child TLVs: kExtAddress, kMode, kTimeout, kLastHeard, kConnectionTime, kCsl, kLinkMarginIn, "
         "kMacLinkErrorRatesTx, kMlEid, kIp6AddressList, "
         "kAlocList,");
-    Log("             kThreadSpecVersion, kThreadStackVersion, kVendorName, kVendorModel, kVendorSwVersion, "
+    Log("             kThreadVersion, kThreadStackVersion, kVendorName, kVendorModel, kVendorSwVersion, "
         "kVendorAppUrl, kIp6LinkLocalAddressList, kEui64, kMacCounters, kMacLinkErrorRatesRx, kMleCounters, "
         "kLinkMarginOut");
     Log("- Neighbor TLVs: kExtAddress, kLastHeard, kConnectionTime, kLinkMarginIn, kMacLinkErrorRatesTx, "
-        "kThreadSpecVersion");
+        "kThreadVersion");
     Log("Summary of tested TLV Ids: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, "
         "23");
     Log("---------------------------------------------------------------------------------------");
@@ -2326,9 +2326,9 @@ void TestDiagnosticValidateVersionAndVendorTlvs(void)
     Log("  - Client router (diag client)");
     Log("---------------------------------------------------------------------------------------");
     Log("The test validates actual version and vendor TLV values:");
-    Log("- Host TLVs: kThreadSpecVersion, kThreadStackVersion, kVendorName, kVendorModel,");
+    Log("- Host TLVs: kThreadVersion, kThreadStackVersion, kVendorName, kVendorModel,");
     Log("             kVendorSwVersion, kVendorAppUrl");
-    Log("- Child TLVs: kThreadSpecVersion, kThreadStackVersion, kVendorName, kVendorModel,");
+    Log("- Child TLVs: kThreadVersion, kThreadStackVersion, kVendorName, kVendorModel,");
     Log("              kVendorSwVersion, kVendorAppUrl");
     Log("Summary of validated TLV Ids: 12, 13, 14, 15, 16, 17");
     Log("Purpose: Validates version and vendor information string TLVs");
@@ -2357,7 +2357,7 @@ void TestDiagnosticValidateVersionAndVendorTlvs(void)
     MeshMonitor::TlvSet hostSet, childSet, neighborSet;
 
     hostSet.Clear();
-    hostSet.Set(MeshMonitor::Tlv::kThreadSpecVersion);
+    hostSet.Set(MeshMonitor::Tlv::kThreadVersion);
     hostSet.Set(MeshMonitor::Tlv::kThreadStackVersion);
     hostSet.Set(MeshMonitor::Tlv::kVendorName);
     hostSet.Set(MeshMonitor::Tlv::kVendorModel);
@@ -2365,7 +2365,7 @@ void TestDiagnosticValidateVersionAndVendorTlvs(void)
     hostSet.Set(MeshMonitor::Tlv::kVendorAppUrl);
 
     childSet.Clear();
-    childSet.Set(MeshMonitor::Tlv::kThreadSpecVersion);
+    childSet.Set(MeshMonitor::Tlv::kThreadVersion);
     childSet.Set(MeshMonitor::Tlv::kThreadStackVersion);
     childSet.Set(MeshMonitor::Tlv::kVendorName);
     childSet.Set(MeshMonitor::Tlv::kVendorModel);
@@ -2388,8 +2388,8 @@ void TestDiagnosticValidateVersionAndVendorTlvs(void)
     VerifyOrQuit(router1Entry != nullptr, "Router1 entry is null");
     VerifyOrQuit(router1Entry->mValid, "Router1 entry not valid");
 
-    VerifyOrQuit(validator->ValidateTlvValue(router1, *router1Entry, MeshMonitor::Tlv::kThreadSpecVersion),
-                 "Host kThreadSpecVersion validation failed");
+    VerifyOrQuit(validator->ValidateTlvValue(router1, *router1Entry, MeshMonitor::Tlv::kThreadVersion),
+                 "Host kThreadVersion validation failed");
     VerifyOrQuit(validator->ValidateTlvValue(router1, *router1Entry, MeshMonitor::Tlv::kThreadStackVersion),
                  "Host kThreadStackVersion validation failed");
     VerifyOrQuit(validator->ValidateTlvValue(router1, *router1Entry, MeshMonitor::Tlv::kVendorName),
@@ -2412,8 +2412,8 @@ void TestDiagnosticValidateVersionAndVendorTlvs(void)
 
     VerifyOrQuit(mtd1Entry != nullptr, "MTD1 entry is null");
 
-    VerifyOrQuit(validator->ValidateTlvValue(mtd1, *mtd1Entry, MeshMonitor::Tlv::kThreadSpecVersion),
-                 "MTD1 kThreadSpecVersion validation failed");
+    VerifyOrQuit(validator->ValidateTlvValue(mtd1, *mtd1Entry, MeshMonitor::Tlv::kThreadVersion),
+                 "MTD1 kThreadVersion validation failed");
     VerifyOrQuit(validator->ValidateTlvValue(mtd1, *mtd1Entry, MeshMonitor::Tlv::kVendorName),
                  "MTD1 kVendorName validation failed");
 
@@ -2427,8 +2427,8 @@ void TestDiagnosticValidateVersionAndVendorTlvs(void)
     DiagnosticValidator::ChildEntry  *mtd2Entry       = mtd2ParentEntry->GetChild(mtd2Rloc16);
 
     VerifyOrQuit(mtd2Entry != nullptr, "MTD2 entry is null");
-    VerifyOrQuit(validator->ValidateTlvValue(mtd2, *mtd2Entry, MeshMonitor::Tlv::kThreadSpecVersion),
-                 "MTD2 kThreadSpecVersion validation failed");
+    VerifyOrQuit(validator->ValidateTlvValue(mtd2, *mtd2Entry, MeshMonitor::Tlv::kThreadVersion),
+                 "MTD2 kThreadVersion validation failed");
 
     validator->Stop();
     delete validator;
@@ -2584,10 +2584,10 @@ void TestDiagnosticValidateComprehensiveTlvs(void)
     Log("  - Client router (diag client)");
     Log("---------------------------------------------------------------------------------------");
     Log("The test validates comprehensive TLV values:");
-    Log("- Host TLVs: kExtAddress, kMode, kThreadSpecVersion, kThreadStackVersion, kVendorName,");
+    Log("- Host TLVs: kExtAddress, kMode, kThreadVersion, kThreadStackVersion, kVendorName,");
     Log("             kVendorModel, kVendorAppUrl, kVendorSwVersion, kIp6AddressList, kAlocList,");
     Log("             kIp6LinkLocalAddressList");
-    Log("- Child TLVs: kTimeout, kLastHeard, kConnectionTime, kMlEid, kThreadSpecVersion,");
+    Log("- Child TLVs: kTimeout, kLastHeard, kConnectionTime, kMlEid, kThreadVersion,");
     Log("              kVendorName, kIp6AddressList, kCsl, kAlocList, kIp6LinkLocalAddressList, kEui64");
     Log("- Neighbor TLVs: (none)");
     Log("Summary of validated TLV Ids: 0, 1, 2, 3, 4, 5, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19");
@@ -2620,7 +2620,7 @@ void TestDiagnosticValidateComprehensiveTlvs(void)
     hostSet.Clear();
     hostSet.Set(MeshMonitor::Tlv::kExtAddress);
     hostSet.Set(MeshMonitor::Tlv::kMode);
-    hostSet.Set(MeshMonitor::Tlv::kThreadSpecVersion);
+    hostSet.Set(MeshMonitor::Tlv::kThreadVersion);
     hostSet.Set(MeshMonitor::Tlv::kThreadStackVersion);
     hostSet.Set(MeshMonitor::Tlv::kVendorName);
     hostSet.Set(MeshMonitor::Tlv::kVendorModel);
@@ -2635,7 +2635,7 @@ void TestDiagnosticValidateComprehensiveTlvs(void)
     childSet.Set(MeshMonitor::Tlv::kLastHeard);
     childSet.Set(MeshMonitor::Tlv::kConnectionTime);
     childSet.Set(MeshMonitor::Tlv::kMlEid);
-    childSet.Set(MeshMonitor::Tlv::kThreadSpecVersion);
+    childSet.Set(MeshMonitor::Tlv::kThreadVersion);
     childSet.Set(MeshMonitor::Tlv::kVendorName);
     childSet.Set(MeshMonitor::Tlv::kIp6AddressList);
     childSet.Set(MeshMonitor::Tlv::kCsl);
@@ -2662,8 +2662,8 @@ void TestDiagnosticValidateComprehensiveTlvs(void)
                  "kExtAddress validation failed");
     VerifyOrQuit(validator->ValidateTlvValue(router1, *router1Entry, MeshMonitor::Tlv::kMode),
                  "kMode validation failed");
-    VerifyOrQuit(validator->ValidateTlvValue(router1, *router1Entry, MeshMonitor::Tlv::kThreadSpecVersion),
-                 "kThreadSpecVersion validation failed");
+    VerifyOrQuit(validator->ValidateTlvValue(router1, *router1Entry, MeshMonitor::Tlv::kThreadVersion),
+                 "kThreadVersion validation failed");
     VerifyOrQuit(validator->ValidateTlvValue(router1, *router1Entry, MeshMonitor::Tlv::kThreadStackVersion),
                  "kThreadStackVersion validation failed");
     VerifyOrQuit(validator->ValidateTlvValue(router1, *router1Entry, MeshMonitor::Tlv::kVendorName),
@@ -2699,8 +2699,8 @@ void TestDiagnosticValidateComprehensiveTlvs(void)
     VerifyOrQuit(validator->ValidateTlvValue(mtd1, *mtd1Entry, MeshMonitor::Tlv::kConnectionTime),
                  "kConnectionTime validation failed");
     VerifyOrQuit(validator->ValidateTlvValue(mtd1, *mtd1Entry, MeshMonitor::Tlv::kMlEid), "kMlEid validation failed");
-    VerifyOrQuit(validator->ValidateTlvValue(mtd1, *mtd1Entry, MeshMonitor::Tlv::kThreadSpecVersion),
-                 "kThreadSpecVersion validation failed");
+    VerifyOrQuit(validator->ValidateTlvValue(mtd1, *mtd1Entry, MeshMonitor::Tlv::kThreadVersion),
+                 "kThreadVersion validation failed");
     VerifyOrQuit(validator->ValidateTlvValue(mtd1, *mtd1Entry, MeshMonitor::Tlv::kVendorName),
                  "kVendorName validation failed");
     VerifyOrQuit(validator->ValidateTlvValue(mtd1, *mtd1Entry, MeshMonitor::Tlv::kIp6AddressList),

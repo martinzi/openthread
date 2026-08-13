@@ -54,7 +54,7 @@ const char *Tlv::TypeToString(Type aType)
         "MlEid",
         "Ip6AddressList",
         "AlocList",
-        "ThreadSpecVersion",
+        "ThreadVersion",
         "ThreadStackVersion",
         "VendorName",
         "VendorModel",
@@ -83,7 +83,7 @@ const char *Tlv::TypeToString(Type aType)
         ValidateNextEnum(kMlEid);
         ValidateNextEnum(kIp6AddressList);
         ValidateNextEnum(kAlocList);
-        ValidateNextEnum(kThreadSpecVersion);
+        ValidateNextEnum(kThreadVersion);
         ValidateNextEnum(kThreadStackVersion);
         ValidateNextEnum(kVendorName);
         ValidateNextEnum(kVendorModel);
@@ -137,7 +137,7 @@ const TlvSet TlvSet::kAllSupportedTlvMask = [] {
     mask.Set(Tlv::kMlEid);
     mask.Set(Tlv::kIp6AddressList);
     mask.Set(Tlv::kAlocList);
-    mask.Set(Tlv::kThreadSpecVersion);
+    mask.Set(Tlv::kThreadVersion);
     mask.Set(Tlv::kThreadStackVersion);
     mask.Set(Tlv::kVendorName);
     mask.Set(Tlv::kVendorModel);
@@ -160,7 +160,7 @@ const TlvSet TlvSet::kHostSupportedTlvMask = [] {
     mask.Set(Tlv::kMlEid);
     mask.Set(Tlv::kIp6AddressList);
     mask.Set(Tlv::kAlocList);
-    mask.Set(Tlv::kThreadSpecVersion);
+    mask.Set(Tlv::kThreadVersion);
     mask.Set(Tlv::kThreadStackVersion);
     mask.Set(Tlv::kVendorName);
     mask.Set(Tlv::kVendorModel);
@@ -186,7 +186,7 @@ const TlvSet TlvSet::kChildSupportedTlvMask = [] {
     mask.Set(Tlv::kMlEid);
     mask.Set(Tlv::kIp6AddressList);
     mask.Set(Tlv::kAlocList);
-    mask.Set(Tlv::kThreadSpecVersion);
+    mask.Set(Tlv::kThreadVersion);
     mask.Set(Tlv::kThreadStackVersion);
     mask.Set(Tlv::kVendorName);
     mask.Set(Tlv::kVendorModel);
@@ -208,7 +208,7 @@ const TlvSet TlvSet::kNeighborSupportedTlvMask = [] {
     mask.Set(Tlv::kConnectionTime);
     mask.Set(Tlv::kLinkMarginIn);
     mask.Set(Tlv::kMacLinkErrorRatesTx);
-    mask.Set(Tlv::kThreadSpecVersion);
+    mask.Set(Tlv::kThreadVersion);
     return mask;
 }();
 

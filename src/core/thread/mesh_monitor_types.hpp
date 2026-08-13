@@ -62,7 +62,7 @@ public:
         kMlEid                   = OT_MESH_MON_TLV_MLEID,
         kIp6AddressList          = OT_MESH_MON_TLV_IP6_ADDRESS_LIST,
         kAlocList                = OT_MESH_MON_TLV_ALOC_LIST,
-        kThreadSpecVersion       = OT_MESH_MON_TLV_THREAD_SPEC_VERSION,
+        kThreadVersion           = OT_MESH_MON_TLV_THREAD_VERSION,
         kThreadStackVersion      = OT_MESH_MON_TLV_THREAD_STACK_VERSION,
         kVendorName              = OT_MESH_MON_TLV_VENDOR_NAME,
         kVendorModel             = OT_MESH_MON_TLV_VENDOR_MODEL,
@@ -170,12 +170,18 @@ private:
     static const TlvSet kNeighborSupportedTlvMask;
 
     /**
-     * Bitmask of all supported TLVs which are provided by a MTD child.
+     * Bitmask of all supported TLVs which an MTD child provides itself.
+     *
+     * TLVs supported in a child context but absent from this mask are supplied by the parent
+     * router on the child's behalf.
      */
     static const TlvSet kMtdChildProvidedTlvMask;
 
     /**
-     * Bitmask of all supported TLVs which are provided by a FTD child.
+     * Bitmask of all supported TLVs which an FTD child provides itself.
+     *
+     * TLVs supported in a child context but absent from this mask are supplied by the parent
+     * router on the child's behalf.
      */
     static const TlvSet kFtdChildProvidedTlvMask;
 
@@ -382,36 +388,34 @@ public:
     }
 
     /**
-     * Creates a new TlvSet containing all TLVs in this set which are provided
-     * by an MTD child.
+     * Creates a new TlvSet containing all TLVs in this set which an MTD child provides itself.
      *
-     * @returns  A TlvSet containing all TLVs in this TlvSet which are provided by an MTD child.
+     * @returns  A TlvSet containing all TLVs in this TlvSet which an MTD child provides itself.
      */
-    TlvSet GetMtdChildProvided(void) const { return Intersect(kMtdChildProvidedTlvMask); }
+    TlvSet GetProvidedByMtdChild(void) const { return Intersect(kMtdChildProvidedTlvMask); }
 
     /**
-     * Creates a new TlvSet containing all TLVs in this set which are not provided
-     * by an MTD child.
+     * Creates a new TlvSet containing all TLVs in this set which an MTD child does not provide
+     * itself, i.e. which the parent router supplies on the child's behalf.
      *
-     * @returns  A TlvSet containing all TLVs in this TlvSet which are not provided by an MTD child.
+     * @returns  A TlvSet containing all TLVs in this TlvSet which an MTD child does not provide itself.
      */
-    TlvSet GetNonMtdChildProvided(void) const { return Cut(kMtdChildProvidedTlvMask); }
+    TlvSet GetNotProvidedByMtdChild(void) const { return Cut(kMtdChildProvidedTlvMask); }
 
     /**
-     * Creates a new TlvSet containing all TLVs in this set which are provided
-     * by an FTD child.
+     * Creates a new TlvSet containing all TLVs in this set which an FTD child provides itself.
      *
-     * @returns  A TlvSet containing all TLVs in this TlvSet which are provided by an FTD child.
+     * @returns  A TlvSet containing all TLVs in this TlvSet which an FTD child provides itself.
      */
-    TlvSet GetFtdChildProvided(void) const { return Intersect(kFtdChildProvidedTlvMask); }
+    TlvSet GetProvidedByFtdChild(void) const { return Intersect(kFtdChildProvidedTlvMask); }
 
     /**
-     * Creates a new TlvSet containing all TLVs in this set which are not provided
-     * by an FTD child.
+     * Creates a new TlvSet containing all TLVs in this set which an FTD child does not provide
+     * itself, i.e. which the parent router supplies on the child's behalf.
      *
-     * @returns  A TlvSet containing all TLVs in this TlvSet which are not provided by an FTD child.
+     * @returns  A TlvSet containing all TLVs in this TlvSet which an FTD child does not provide itself.
      */
-    TlvSet GetNonFtdChildProvided(void) const { return Cut(kFtdChildProvidedTlvMask); }
+    TlvSet GetNotProvidedByFtdChild(void) const { return Cut(kFtdChildProvidedTlvMask); }
 
     Iterator begin(void) const { return Iterator(*this); }
     Iterator end(void) const { return Iterator(); }
@@ -445,24 +449,24 @@ public:
     Error ReadFrom(const Message &aMessage, uint16_t &aOffset, uint8_t aSetCount);
 
     /**
-     * Checks if a TLV is provided by an MTD child.
+     * Checks if a TLV is one that an MTD child provides itself.
      *
      * @param[in]  aType  The TLV to be checked.
      *
-     * @retval true   If aType is provided by an MTD child.
-     * @retval false  If aType is not provided by an MTD child.
+     * @retval true   If aType is provided by the MTD child itself.
+     * @retval false  If aType is supplied by the parent router on the child's behalf.
      */
-    static bool IsMtdChildProvided(Tlv::Type aType) { return kMtdChildProvidedTlvMask.IsSet(aType); }
+    static bool IsProvidedByMtdChild(Tlv::Type aType) { return kMtdChildProvidedTlvMask.IsSet(aType); }
 
     /**
-     * Checks if a TLV is provided by an FTD child.
+     * Checks if a TLV is one that an FTD child provides itself.
      *
      * @param[in]  aType  The TLV to be checked.
      *
-     * @retval true   If aType is provided by an FTD child.
-     * @retval false  If aType is not provided by an FTD child.
+     * @retval true   If aType is provided by the FTD child itself.
+     * @retval false  If aType is supplied by the parent router on the child's behalf.
      */
-    static bool IsFtdChildProvided(Tlv::Type aType) { return kFtdChildProvidedTlvMask.IsSet(aType); }
+    static bool IsProvidedByFtdChild(Tlv::Type aType) { return kFtdChildProvidedTlvMask.IsSet(aType); }
 
     /**
      * Gets a pointer to the underlying mask bytes.
@@ -472,7 +476,7 @@ public:
     const uint8_t *GetMaskBytes(void) const { return AsBitSet().GetMaskBytes(); }
 
 private:
-    BitSet<kNumBits> &AsBitSet(void) { return *static_cast<BitSet<kNumBits> *>(static_cast<void *>(mFields)); }
+    BitSet<kNumBits>       &AsBitSet(void) { return *static_cast<BitSet<kNumBits> *>(static_cast<void *>(mFields)); }
     const BitSet<kNumBits> &AsBitSet(void) const
     {
         return *static_cast<const BitSet<kNumBits> *>(static_cast<const void *>(mFields));

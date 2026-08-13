@@ -55,7 +55,7 @@ const TlvSet Server::kStaticNeighborTlvMask = [] {
     TlvSet set;
     set.Set(Tlv::kExtAddress);
     set.Set(Tlv::kConnectionTime);
-    set.Set(Tlv::kThreadSpecVersion);
+    set.Set(Tlv::kThreadVersion);
     return set;
 }();
 
@@ -77,11 +77,11 @@ void Server::ChildInfo::MarkHostProvidedTlvsChanged(TlvSet aTlvs)
 {
     if (mIsFtd)
     {
-        mDirtySet.SetAll(aTlvs.GetNonFtdChildProvided());
+        mDirtySet.SetAll(aTlvs.GetNotProvidedByFtdChild());
     }
     else
     {
-        mDirtySet.SetAll(aTlvs.GetNonMtdChildProvided());
+        mDirtySet.SetAll(aTlvs.GetNotProvidedByMtdChild());
     }
 }
 
@@ -114,11 +114,11 @@ TlvSet Server::ChildInfo::GetDirtyHostProvided(TlvSet aFilter) const
 
     if (mIsFtd)
     {
-        set = set.GetNonFtdChildProvided();
+        set = set.GetNotProvidedByFtdChild();
     }
     else
     {
-        set = set.GetNonMtdChildProvided();
+        set = set.GetNotProvidedByMtdChild();
     }
 
     return set;
@@ -132,11 +132,11 @@ void Server::ChildInfo::EvictCache(void)
 
     if (mIsFtd)
     {
-        lost = mDirtySet.GetFtdChildProvided();
+        lost = mDirtySet.GetProvidedByFtdChild();
     }
     else
     {
-        lost = mDirtySet.GetMtdChildProvided();
+        lost = mDirtySet.GetProvidedByMtdChild();
     }
 
     mDirtySet.ClearAll(lost);
@@ -245,11 +245,11 @@ Error Server::ChildInfo::UpdateCache(const Message &aMessage, TlvSet aFilter)
 
         if (mIsFtd)
         {
-            set = set.GetFtdChildProvided();
+            set = set.GetProvidedByFtdChild();
         }
         else
         {
-            set = set.GetMtdChildProvided();
+            set = set.GetProvidedByMtdChild();
         }
 
         if (set.IsEmpty())
@@ -392,11 +392,11 @@ void Server::MarkChildDiagDirty(Child &aChild, TlvSet aTlvs)
     // Use mIsFtd to allow the compiler to optimize away the check in MarkHostProvidedTlvsChanged
     if (aChild.mIsFtd)
     {
-        aTlvs = aTlvs.GetNonFtdChildProvided();
+        aTlvs = aTlvs.GetNotProvidedByFtdChild();
     }
     else
     {
-        aTlvs = aTlvs.GetNonMtdChildProvided();
+        aTlvs = aTlvs.GetNotProvidedByMtdChild();
     }
 
     // If the server is inactive, the enabled set will always be 0 so this
@@ -434,11 +434,11 @@ void Server::HandleChildAdded(Child &aChild)
 
         if (aChild.IsFullThreadDevice())
         {
-            set = mChildEnabled.GetFtdChildProvided();
+            set = mChildEnabled.GetProvidedByFtdChild();
         }
         else
         {
-            set = mChildEnabled.GetMtdChildProvided();
+            set = mChildEnabled.GetProvidedByMtdChild();
         }
 
         set.ClearAll(static_cast<const TlvSet &>(kChildAttachSkipTlvMask));
@@ -658,11 +658,11 @@ template <> void Server::HandleTmf<kUriMeshMonEndDeviceUpdate>(Coap::Msg &aMsg)
 
     if (child->IsFullThreadDevice())
     {
-        set = mChildEnabled.GetFtdChildProvided();
+        set = mChildEnabled.GetProvidedByFtdChild();
     }
     else
     {
-        set = mChildEnabled.GetMtdChildProvided();
+        set = mChildEnabled.GetProvidedByMtdChild();
     }
 
     if (child->UpdateCache(aMsg.mMessage, set) != kErrorNone)
@@ -808,11 +808,11 @@ bool Server::ConfigureAsEndDevice(const TlvSet &aTypes)
         TlvSet childProvidedRequested;
         if (Get<Mle::Mle>().IsFullThreadDevice())
         {
-            childProvidedRequested = mSelfEnabled.GetFtdChildProvided();
+            childProvidedRequested = mSelfEnabled.GetProvidedByFtdChild();
         }
         else
         {
-            childProvidedRequested = mSelfEnabled.GetMtdChildProvided();
+            childProvidedRequested = mSelfEnabled.GetProvidedByMtdChild();
         }
 
         // Union requested child-provided TLVs into dirty set
@@ -1127,14 +1127,14 @@ Error Server::ConfigureAsRouter(const TlvSet &aSelf, const TlvSet &aChild, const
 
     mSelfDirty.SetAll(GetExtDelayTlvs(mSelfEnabled));
 
-    oldFtd = mChildEnabled.GetFtdChildProvided();
-    oldMtd = mChildEnabled.GetMtdChildProvided();
+    oldFtd = mChildEnabled.GetProvidedByFtdChild();
+    oldMtd = mChildEnabled.GetProvidedByMtdChild();
 
     mChildEnabled = aChild;
     mChildEnabled.FilterChildSupportedTlv();
 
-    SyncAllChildDiagStates(oldFtd != mChildEnabled.GetFtdChildProvided(), oldMtd != mChildEnabled.GetMtdChildProvided(),
-                           aQuery);
+    SyncAllChildDiagStates(oldFtd != mChildEnabled.GetProvidedByFtdChild(),
+                           oldMtd != mChildEnabled.GetProvidedByMtdChild(), aQuery);
 
     mNeighborEnabled = aNeighbor;
     mNeighborEnabled.FilterNeighborSupportedTlv();
@@ -1176,11 +1176,11 @@ void Server::SyncChildDiagState(Child &aChild, bool aQuery)
 
     if (aChild.IsFullThreadDevice())
     {
-        set = mChildEnabled.GetFtdChildProvided();
+        set = mChildEnabled.GetProvidedByFtdChild();
     }
     else
     {
-        set = mChildEnabled.GetMtdChildProvided();
+        set = mChildEnabled.GetProvidedByMtdChild();
     }
 
     if (set.IsEmpty())
@@ -1484,6 +1484,17 @@ void Server::HandleServerUpdateAck(Coap::Msg *aMsg, Error aResult)
 }
 #endif // OPENTHREAD_FTD
 
+static void SetLinkMarginTlvValue(LinkMarginTlvValue &aTlvValue, const LinkQualityInfo &aLinkInfo)
+{
+    int8_t averageRssi = aLinkInfo.GetAverageRss();
+
+    aTlvValue.SetLinkMargin((averageRssi == LinkMarginTlvValue::kUnknownRssi)
+                                ? LinkMarginTlvValue::kUnknownLinkMargin
+                                : Min(aLinkInfo.GetLinkMargin(), LinkMarginTlvValue::kMaxLinkMargin));
+    aTlvValue.SetAverageRssi(averageRssi);
+    aTlvValue.SetLastRssi(aLinkInfo.GetLastRss());
+}
+
 Error Server::AppendHostTlvs(Message &aMessage, TlvSet aTlvs)
 {
     Error error = kErrorNone;
@@ -1519,8 +1530,8 @@ Error Server::AppendHostTlvs(Message &aMessage, TlvSet aTlvs)
             break;
 
 #if OPENTHREAD_FTD
-        case Tlv::kThreadSpecVersion:
-            SuccessOrExit(error = Tlv::Append<ThreadSpecVersionTlv>(aMessage, kThreadVersion));
+        case Tlv::kThreadVersion:
+            SuccessOrExit(error = Tlv::Append<ThreadVersionTlv>(aMessage, kThreadVersion));
             break;
 #endif
 
@@ -1575,8 +1586,8 @@ Error Server::AppendHostTlvs(Message &aMessage, TlvSet aTlvs)
             VerifyOrExit(Get<Mle::Mle>().IsChild());
 
             tlv.Init();
-            tlv.SetMessageErrorRates(parent.GetLinkInfo().GetMessageErrorRate());
-            tlv.SetFrameErrorRates(parent.GetLinkInfo().GetFrameErrorRate());
+            tlv.SetMessageErrorRate(parent.GetLinkInfo().GetMessageErrorRate());
+            tlv.SetFrameErrorRate(parent.GetLinkInfo().GetFrameErrorRate());
 
             SuccessOrExit(error = aMessage.Append(tlv));
             break;
@@ -1599,9 +1610,7 @@ Error Server::AppendHostTlvs(Message &aMessage, TlvSet aTlvs)
             VerifyOrExit(Get<Mle::Mle>().IsChild());
 
             tlv.Init();
-            tlv.SetLinkMargin(parent.GetLinkInfo().GetLinkMargin());
-            tlv.SetAverageRssi(parent.GetLinkInfo().GetAverageRss());
-            tlv.SetLastRssi(parent.GetLinkInfo().GetLastRss());
+            SetLinkMarginTlvValue(tlv, parent.GetLinkInfo());
 
             SuccessOrExit(error = aMessage.Append(tlv));
             break;
@@ -1674,11 +1683,11 @@ Error Server::AppendChildContext(Message &aMessage, Child &aChild)
         {
             if (aChild.mIsFtd)
             {
-                tlvs = mChildEnabled.GetNonFtdChildProvided();
+                tlvs = mChildEnabled.GetNotProvidedByFtdChild();
             }
             else
             {
-                tlvs = mChildEnabled.GetNonMtdChildProvided();
+                tlvs = mChildEnabled.GetNotProvidedByMtdChild();
             }
         }
 
@@ -1745,9 +1754,7 @@ Error Server::AppendChildTlvs(Message &aMessage, TlvSet aTlvs, const Child &aChi
             LinkMarginInTlv tlv;
             tlv.Init();
 
-            tlv.SetLinkMargin(aChild.GetLinkInfo().GetLinkMargin());
-            tlv.SetAverageRssi(aChild.GetLinkInfo().GetAverageRss());
-            tlv.SetLastRssi(aChild.GetLinkInfo().GetLastRss());
+            SetLinkMarginTlvValue(tlv, aChild.GetLinkInfo());
 
             SuccessOrExit(error = aMessage.Append(tlv));
             break;
@@ -1758,8 +1765,8 @@ Error Server::AppendChildTlvs(Message &aMessage, TlvSet aTlvs, const Child &aChi
             MacLinkErrorRatesTxTlv tlv;
             tlv.Init();
 
-            tlv.SetMessageErrorRates(aChild.GetLinkInfo().GetMessageErrorRate());
-            tlv.SetFrameErrorRates(aChild.GetLinkInfo().GetFrameErrorRate());
+            tlv.SetMessageErrorRate(aChild.GetLinkInfo().GetMessageErrorRate());
+            tlv.SetFrameErrorRate(aChild.GetLinkInfo().GetFrameErrorRate());
 
             SuccessOrExit(error = aMessage.Append(tlv));
             break;
@@ -1777,8 +1784,8 @@ Error Server::AppendChildTlvs(Message &aMessage, TlvSet aTlvs, const Child &aChi
             SuccessOrExit(error = AppendChildAlocList(aMessage, aChild));
             break;
 
-        case Tlv::kThreadSpecVersion:
-            SuccessOrExit(error = Tlv::Append<ThreadSpecVersionTlv>(aMessage, aChild.GetVersion()));
+        case Tlv::kThreadVersion:
+            SuccessOrExit(error = Tlv::Append<ThreadVersionTlv>(aMessage, aChild.GetVersion()));
             break;
 
         default:
@@ -1883,9 +1890,7 @@ Error Server::AppendNeighborTlvs(Message &aMessage, TlvSet aTlvs, const Router &
             LinkMarginInTlv tlv;
             tlv.Init();
 
-            tlv.SetLinkMargin(aNeighbor.GetLinkInfo().GetLinkMargin());
-            tlv.SetAverageRssi(aNeighbor.GetLinkInfo().GetAverageRss());
-            tlv.SetLastRssi(aNeighbor.GetLinkInfo().GetLastRss());
+            SetLinkMarginTlvValue(tlv, aNeighbor.GetLinkInfo());
 
             SuccessOrExit(error = aMessage.Append(tlv));
             break;
@@ -1896,15 +1901,15 @@ Error Server::AppendNeighborTlvs(Message &aMessage, TlvSet aTlvs, const Router &
             MacLinkErrorRatesTxTlv tlv;
             tlv.Init();
 
-            tlv.SetMessageErrorRates(aNeighbor.GetLinkInfo().GetMessageErrorRate());
-            tlv.SetFrameErrorRates(aNeighbor.GetLinkInfo().GetFrameErrorRate());
+            tlv.SetMessageErrorRate(aNeighbor.GetLinkInfo().GetMessageErrorRate());
+            tlv.SetFrameErrorRate(aNeighbor.GetLinkInfo().GetFrameErrorRate());
 
             SuccessOrExit(error = aMessage.Append(tlv));
             break;
         }
 
-        case Tlv::kThreadSpecVersion:
-            SuccessOrExit(error = Tlv::Append<ThreadSpecVersionTlv>(aMessage, aNeighbor.GetVersion()));
+        case Tlv::kThreadVersion:
+            SuccessOrExit(error = Tlv::Append<ThreadVersionTlv>(aMessage, aNeighbor.GetVersion()));
             break;
 
         default:
@@ -2784,8 +2789,8 @@ Error Client::GetNextTlv(const Coap::Message &aMessage, otMeshMonContext &aConte
             aTlv.mData.mAlocList.mLength = value.GetLength();
             ExitNow();
 
-        case Tlv::kThreadSpecVersion:
-            SuccessOrExit(error = tlvInfo.Read<Mle::VersionTlv>(aMessage, aTlv.mData.mThreadSpecVersion));
+        case Tlv::kThreadVersion:
+            SuccessOrExit(error = tlvInfo.Read<Mle::VersionTlv>(aMessage, aTlv.mData.mThreadVersion));
             ExitNow();
 
         case Tlv::kThreadStackVersion:
@@ -2824,8 +2829,8 @@ Error Client::GetNextTlv(const Coap::Message &aMessage, otMeshMonContext &aConte
             MacLinkErrorRatesTxTlv data;
             SuccessOrExit(error = aMessage.Read(offset, data));
 
-            aTlv.mData.mMacLinkErrorRatesTx.mMessageErrorRate = data.GetMessageErrorRates();
-            aTlv.mData.mMacLinkErrorRatesTx.mFrameErrorRate   = data.GetFrameErrorRates();
+            aTlv.mData.mMacLinkErrorRatesTx.mMessageErrorRate = data.GetMessageErrorRate();
+            aTlv.mData.mMacLinkErrorRatesTx.mFrameErrorRate   = data.GetFrameErrorRate();
             ExitNow();
         }
 
@@ -2844,8 +2849,8 @@ Error Client::GetNextTlv(const Coap::Message &aMessage, otMeshMonContext &aConte
             MacLinkErrorRatesRxTlv data;
             SuccessOrExit(error = aMessage.Read(offset, data));
 
-            aTlv.mData.mMacLinkErrorRatesRx.mMessageErrorRate = data.GetMessageErrorRates();
-            aTlv.mData.mMacLinkErrorRatesRx.mFrameErrorRate   = data.GetFrameErrorRates();
+            aTlv.mData.mMacLinkErrorRatesRx.mMessageErrorRate = data.GetMessageErrorRate();
+            aTlv.mData.mMacLinkErrorRatesRx.mFrameErrorRate   = data.GetFrameErrorRate();
             ExitNow();
         }
 

@@ -94,7 +94,7 @@ typedef enum otMeshMonUpdateMode
 #define OT_MESH_MON_TLV_MLEID 9U                        ///< ML-EID TLV
 #define OT_MESH_MON_TLV_IP6_ADDRESS_LIST 10U            ///< IPv6 Address List TLV
 #define OT_MESH_MON_TLV_ALOC_LIST 11U                   ///< ALOC List TLV
-#define OT_MESH_MON_TLV_THREAD_SPEC_VERSION 12U         ///< Thread Specification Version TLV
+#define OT_MESH_MON_TLV_THREAD_VERSION 12U              ///< Thread Version TLV
 #define OT_MESH_MON_TLV_THREAD_STACK_VERSION 13U        ///< Thread Stack Version TLV
 #define OT_MESH_MON_TLV_VENDOR_NAME 14U                 ///< Vendor Name TLV
 #define OT_MESH_MON_TLV_VENDOR_MODEL 15U                ///< Vendor Model TLV
@@ -108,6 +108,12 @@ typedef enum otMeshMonUpdateMode
 #define OT_MESH_MON_TLV_LINK_MARGIN_OUT 23U             ///< Link Margin Out TLV
 
 #define OT_MESH_MON_DATA_TLV_MAX 23U ///< The highest known tlv value that can be requested using a request set.
+
+#define OT_MESH_MON_LINK_MARGIN_MAX 200U               ///< Highest link margin value in dB that can be reported.
+#define OT_MESH_MON_LINK_MARGIN_UNKNOWN 255U           ///< Link margin is unknown or unavailable.
+#define OT_MESH_MON_RSSI_UNKNOWN OT_RADIO_RSSI_INVALID ///< RSSI is unknown or unavailable.
+
+#define OT_MESH_MON_CSL_CHANNEL_UNSPECIFIED 0U ///< No dedicated CSL channel, the Thread network channel is used.
 
 #define OT_MESH_MON_ITERATOR_INIT 0 ///< Initializer for `otMeshMonIterator`.
 
@@ -165,7 +171,9 @@ typedef struct otMeshMonCsl
 {
     uint32_t mTimeout; ///< CSL timeout in seconds
     uint16_t mPeriod;  ///< CSL period
-    uint8_t  mChannel; ///< CSL channel (2.4 GHz IEEE 802.15.4 channel page assumed)
+    uint8_t  mChannel; ///< CSL channel (2.4 GHz IEEE 802.15.4 channel page assumed). A value of
+                       ///< `OT_MESH_MON_CSL_CHANNEL_UNSPECIFIED` means that no dedicated CSL channel is configured
+                       ///< and the device uses the same channel as the Thread network.
 } otMeshMonCsl;
 
 /**
@@ -196,25 +204,32 @@ typedef struct otMeshMonAlocIterator
 /**
  * Represents a Link Margin TLV value.
  *
- * - `OT_MESH_MON_TLV_LINK_MARGIN_IN` reports the link margin of frames received by
- *   this device from its peer.
- * - `OT_MESH_MON_TLV_LINK_MARGIN_OUT` reports the link margin of frames transmitted
- *   by this device to its peer, as observed by the peer.
+ * A link margin can only be observed by the receiver of a frame, so it is always measured by the
+ * receiving end of the reported link direction:
+ *
+ * - `OT_MESH_MON_TLV_LINK_MARGIN_IN` describes the peer-to-router direction (frames the router
+ *   receives from the child or neighbor) and is measured by the router.
+ * - `OT_MESH_MON_TLV_LINK_MARGIN_OUT` describes the router-to-child direction (frames the router
+ *   transmits to the child) and is measured by the child and reported to its parent.
  */
 typedef struct otMeshMonLinkMargin
 {
-    uint8_t mLinkMargin;  ///< Average Link margin in dB
-    int8_t  mAverageRssi; ///< Average RSSI in dBm
-    int8_t  mLastRssi;    ///< Last RSSI in dBm
+    uint8_t mLinkMargin; ///< Average link margin in dB (up to `OT_MESH_MON_LINK_MARGIN_MAX`), or
+                         ///< `OT_MESH_MON_LINK_MARGIN_UNKNOWN` if unknown
+    int8_t mAverageRssi; ///< Average RSSI in dBm, or `OT_MESH_MON_RSSI_UNKNOWN` if unknown
+    int8_t mLastRssi;    ///< Last RSSI in dBm, or `OT_MESH_MON_RSSI_UNKNOWN` if unknown
 } otMeshMonLinkMargin;
 
 /**
  * Represents a MAC Link Error Rates TLV value.
  *
- * - `OT_MESH_MON_TLV_MAC_LINK_ERROR_RATES_TX` reports the error rate of
- *   frames transmitted by this device to its peer.
- * - `OT_MESH_MON_TLV_MAC_LINK_ERROR_RATES_RX` reports the error rate of
- *   frames received by this device from its peer.
+ * An error rate is derived from missing acknowledgments, so it can only be observed by the
+ * transmitter of a frame and is always measured by the sending end of the reported link direction:
+ *
+ * - `OT_MESH_MON_TLV_MAC_LINK_ERROR_RATES_TX` describes the router-to-peer direction (frames the
+ *   router transmits to the child or neighbor) and is measured by the router.
+ * - `OT_MESH_MON_TLV_MAC_LINK_ERROR_RATES_RX` describes the child-to-router direction (frames the
+ *   router receives from the child) and is measured by the child and reported to its parent.
  */
 typedef struct otMeshMonMacLinkErrorRates
 {
@@ -241,7 +256,7 @@ typedef struct otMeshMonTlv
         otIp6InterfaceIdentifier   mMlEid;
         otMeshMonIp6AddrIterator   mIp6AddressList;
         otMeshMonAlocIterator      mAlocList;
-        uint16_t                   mThreadSpecVersion;
+        uint16_t                   mThreadVersion; ///< Thread version, e.g. `OT_THREAD_VERSION_1_4`
         char                       mThreadStackVersion[OT_NETWORK_DIAGNOSTIC_MAX_THREAD_STACK_VERSION_TLV_LENGTH + 1];
         char                       mVendorName[OT_NETWORK_DIAGNOSTIC_MAX_VENDOR_NAME_TLV_LENGTH + 1];
         char                       mVendorModel[OT_NETWORK_DIAGNOSTIC_MAX_VENDOR_MODEL_TLV_LENGTH + 1];
