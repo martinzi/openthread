@@ -7,6 +7,10 @@ import re
 import os
 from datetime import datetime
 
+"""
+THIS SCRIPT IS NOT UPDATED TO THE CURRENT MESH MONITOR IMPLEMENTATION. IT IS KEPT FOR REFERENCE PURPOSES ONLY.
+"""
+
 # This script will run one instance of the extended network diagnostic protocol test.
 # Configuration can be done using the constants below.
 #

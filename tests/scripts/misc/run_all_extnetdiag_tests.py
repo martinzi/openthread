@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """
+THIS SCRIPT IS NOT UPDATED TO THE CURRENT MESH MONITOR IMPLEMENTATION. IT IS KEPT FOR REFERENCE PURPOSES ONLY.
+
 Runner script for test_ext_network_diagnostic_win.py
 
 Runs the test 4 * RUNS_PER_CONFIG times total (RUNS_PER_CONFIG runs per configuration combination):
