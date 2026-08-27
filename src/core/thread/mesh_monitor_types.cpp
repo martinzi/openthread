@@ -260,7 +260,7 @@ Error TlvSet::AppendTo(Message &aMessage, uint8_t &aSetCount) const
     Error          error = kErrorNone;
     RequestSet     set;
     uint8_t        setCount = 0;
-    const uint8_t *mask     = AsBitSet().GetMaskBytes();
+    const uint8_t *mask     = GetMaskBytes();
 
     uint8_t valOffset = 0;
     uint8_t valLength;
@@ -334,7 +334,7 @@ Error TlvSet::ReadFrom(const Message &aMessage, uint16_t &aOffset, uint8_t aSetC
         offset += valLength;
     }
 
-    AsBitSet().SetMask(tempMask);
+    memcpy(mFields, tempMask, kMaskSize);
     aOffset = offset;
 
 exit:
